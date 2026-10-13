@@ -1,0 +1,20 @@
+# Dependencies (مجلد ضخم جداً، لا يجب رفعه أبداً)
+node_modules/
+
+# Database file (بيانات محلية، كل مطور له قاعدته الخاصة)
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables (بيانات سرية مثل مفاتيح API)
+.env
+.env.local
+
+# OS generated files (ملفات نظام لا فائدة منها)
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs (سجلات التشغيل)
+*.log
+npm-debug.log*
