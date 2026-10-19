@@ -1,0 +1,93 @@
+services:
+  forum:
+    build: .
+    container_name: forum_app
+    ports:
+      - "3000:3000"
+    volumes:
+      - forum_data:/app/data
+      - forum_certs:/app/certs
+      - forum_media:/app/media
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DB_PATH=/app/data/forum.db
+      - MEDIA_ROOT=/app/media
+      - DB_PASSWORD=${DB_PASSWORD}
+    restart: unless-stopped
+
+    # ------------------------------------------------------------------------
+    # F04: Resource limits (prevent DoS via resource exhaustion)
+    # ------------------------------------------------------------------------
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+          pids: 200
+        reservations:
+          memory: 128M
+
+    # ------------------------------------------------------------------------
+    # F04: Read-only root filesystem (immutable container)
+    # ------------------------------------------------------------------------
+    # Writes are only allowed to mounted volumes + /tmp (tmpfs).
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /app/.npm:rw,noexec,nosuid,size=8m
+
+    # ------------------------------------------------------------------------
+    # F04: Logging limits (prevent disk exhaustion)
+    # ------------------------------------------------------------------------
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # ------------------------------------------------------------------------
+    # Health check (Node.js-based, IPv6 + HTTPS safe)
+    # ------------------------------------------------------------------------
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - |
+          const https = require('https');
+          const req = https.get(
+            { host: 'localhost', port: 3000, path: '/auth/providers', rejectUnauthorized: false },
+            (r) => process.exit(r.statusCode < 500 ? 0 : 1)
+          );
+          req.on('error', () => process.exit(1));
+          req.setTimeout(3000, () => { req.destroy(); process.exit(1); });
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    # ------------------------------------------------------------------------
+    # F04: Security hardening
+    # ------------------------------------------------------------------------
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+
+    # Graceful shutdown: give the app 30s to drain in-flight requests
+    stop_grace_period: 30s
+
+volumes:
+  forum_data:
+  forum_certs:
+  forum_media:

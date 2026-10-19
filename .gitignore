@@ -1,20 +1,49 @@
-# Dependencies (مجلد ضخم جداً، لا يجب رفعه أبداً)
+# ============================================================================
+# Forum Project — Git ignore rules
+# ============================================================================
+
+# ---- Dependencies ----
 node_modules/
 
-# Database file (بيانات محلية، كل مطور له قاعدته الخاصة)
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment variables (بيانات سرية مثل مفاتيح API)
+# ---- Environment (contains secrets) ----
+# Explicit entries so that .env.example is NOT ignored.
 .env
 .env.local
+.env.*.local
+!.env.example
 
-# OS generated files (ملفات نظام لا فائدة منها)
-.DS_Store
-Thumbs.db
-desktop.ini
+# ---- Runtime data (SQLite) ----
+data/
+forum.db
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
-# Logs (سجلات التشغيل)
+# ---- TLS certificates (generated at runtime) ----
+certs/
+key.pem
+cert.pem
+*.pem
+
+# ---- Media uploads (runtime generated) ----
+media/
+
+# ---- Test / coverage artifacts ----
+coverage/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Editor / OS noise ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---- Build artifacts (not applicable, kept for safety) ----
+dist/
+build/

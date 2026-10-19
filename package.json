@@ -1,19 +1,59 @@
 {
   "name": "forum-project",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.1.0",
+  "description": "Full-stack forum (F01–F06) - Node.js + SQLite + HTTPS + SSO + Verified Media + Encrypted DB",
+  "main": "server.js",
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "db:seed": "node src/database/seed.js",
+    "db:inspect": "node scripts/inspect-db.js",
+    "db:backup": "node scripts/backup-db.js",
+    "db:restore": "node scripts/restore-db.js",
+    "media:cleanup": "node scripts/cleanup-media.js",
+    "media:seed-demo": "node scripts/seed-demo-media.js",
+    "test": "jest --runInBand --detectOpenHandles",
+    "test:coverage": "jest --coverage --runInBand"
   },
-  "keywords": [],
+  "keywords": [
+    "forum",
+    "nodejs",
+    "sqlite",
+    "sqlcipher",
+    "https",
+    "oauth",
+    "oidc",
+    "pkce",
+    "media"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3-multiple-ciphers": "^12.2.0",
+    "busboy": "^1.6.0",
     "cookie-session": "^2.1.1",
-    "express": "^5.3.0"
+    "dotenv": "^16.4.5",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "file-type": "^16.5.4",
+    "openid-client": "^6.8.4",
+    "selfsigned": "^5.5.0",
+    "sharp": "^0.35.5",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0",
+    "supertest": "^7.0.0"
+  },
+  "overrides": {
+    "js-yaml": "^4.2.0",
+    "brace-expansion": "^1.1.12"
+  },
+  "jest": {
+    "setupFiles": ["<rootDir>/tests/setup.js"],
+    "testEnvironment": "node",
+    "testTimeout": 15000
   }
 }
