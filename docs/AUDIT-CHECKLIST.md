@@ -6,14 +6,15 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 
 | Phase | Description | Status | Tests |
 | --- | --- | --- | --- |
-| **F01** | Base Forum | ✅ Complete | 43 |
-| **F02** | SSO (Google & GitHub) | ✅ Complete | 13 |
+| **F01** | Base Forum | ✅ Complete | 46 |
+| **F02** | SSO (Google & GitHub) | ✅ Complete | 17 |
 | **F03** | Image Upload | ✅ Complete | 12 |
-| **F04** | Security Hardening | ✅ Complete | 16 |
+| **F04** | Security Hardening | ✅ Complete | 22 |
 | **F05** | Moderation (Roles) | ✅ Complete | 6 |
-| **F06** | Advanced Features | ✅ Complete | 8 |
-| **P21** | **DB Encryption (Bonus)** | **✅ Complete** | **5** |
-| **Total** | **Full Track + Bonus** | **✅ 100%** | **107/107** |
+| **F06** | Advanced Features | ✅ Complete | 9 |
+| **P21** | **DB Encryption (Bonus)** | **✅ Complete** | **6** |
+| **Week-1 fixes** | B1-B5, B7-B8, C2, C7, G1, G1+, H1 | ✅ Complete | — |
+| **Total** | **Full Track + Bonus + Week-1 fixes** | **✅ 100%** | **114/114** |
 
 ---
 
@@ -31,7 +32,7 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 | P08 | Feed Filters & Pagination | ✅ | `post.model.js::list()` |
 | P09 | Registration & bcrypt | ✅ | `auth.controller.js`, `password.js` |
 | P10 | Sessions + Route Guards + CSRF | ✅ | `session.model.js`, `csrf.js` |
-| P11 | Failure Handling + Tests | ✅ | `errorHandler.js`, 107 tests |
+| P11 | Failure Handling + Tests | ✅ | `errorHandler.js`, 114 tests |
 | P12 | Docker + Volumes | ✅ | `Dockerfile`, `docker-compose.yml` |
 | P13 | External API Client | ✅ | `providers/` |
 | P14 | OAuth + PKCE | ✅ | `pkce.js`, `oauthState.model.js` |
@@ -89,7 +90,7 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 | # | Requirement | Status | Implementation |
 | --- | --- | --- | --- |
 | 33 | Layered architecture | ✅ | Controllers, Models, Middleware, Validators |
-| 34 | Unit/Integration Tests | ✅ | 18 suites, 107 tests (Jest + Supertest) |
+| 34 | Unit/Integration Tests | ✅ | 18 suites, 114 tests (Jest + Supertest) |
 | 35 | Zero Vulnerabilities | ✅ | `npm audit` returns 0 vulnerabilities |
 | 36 | Docker Multi-stage | ✅ | Minimized image, no build tools in runtime |
 
@@ -105,3 +106,24 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 | 40 | Only allowed packages | ✅ See `package.json` |
 | 41 | SELECT/CREATE/INSERT | ✅ Extensively in `models/` and `schema.js` |
 | **42** | **P21 DB Encryption** | **✅ SQLCipher** |
+
+---
+
+## Week-1 Security & Correctness Fixes (v1.2.0)
+
+| # | ID | Fix | Files changed | Test |
+| --- | --- | --- | --- | --- |
+| 1 | **B1** | First-ever SSO user bootstrapped as `admin` | `src/auth/identity.service.js` | `tests/sso.linking.test.js` (B1×3) |
+| 2 | **B2** | `changePassword` revokes ALL sessions | `src/controllers/auth.controller.js` | `tests/f04.password.test.js` (B2) |
+| 3 | **B3** | Escaped single quotes in `PRAGMA key` | `src/database/db.js`, `scripts/backup-db.js`, `scripts/restore-db.js` | `tests/f04.db-encryption.test.js` (B3) |
+| 4 | **B4** | Deduplicated unread like-notifications | `src/models/notification.model.js` | `tests/f06.advanced.test.js` (B4) |
+| 5 | **B5** | Removed `sessionId` from `/me` | `src/controllers/auth.controller.js` | — |
+| 6 | **B7** | Corrected DEMO-SCRIPT Step 7 (`docker exec` defaults to root) | `docs/DEMO-SCRIPT.md` | manual |
+| 7 | **B8** | Hide stack traces in test mode | `src/middleware/errorHandler.js` | `tests/security.test.js` (stack assertion) |
+| 8 | **C2** | `reportLimiter` (5/hour/user) | `src/middleware/rateLimit.js`, `src/routes/moderation.routes.js` | `tests/f04.ratelimit.test.js` (C2) |
+| 9 | **C7** | Dropped `DAC_OVERRIDE` capability | `docker-compose.yml`, `entrypoint.sh`, `Dockerfile` | manual (`/proc/1/status`) |
+| 10 | **G1** | Media test isolation | `tests/helpers.js` | media tests pass in any order |
+| 11 | **G1+** | Forced `DB_PASSWORD=''` in test mode | `src/config/index.js`, `src/database/db.js`, `tests/setup.js` | all tests pass with `DB_PASSWORD` in `.env` |
+| 12 | **H1** | `GET /health` endpoint + Docker healthcheck | `src/app.js`, `docker-compose.yml` | `tests/security.test.js` (H1) |
+
+**New tests added in Week 1:** 7 (B1×3, B2, B3, B4, C2, H1).

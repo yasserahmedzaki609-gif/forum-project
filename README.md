@@ -5,7 +5,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![SQLite](https://img.shields.io/badge/sqlite-3%20%2B%20SQLCipher-blue)](https://www.zetetic.net/sqlcipher/)
 [![Express](https://img.shields.io/badge/express-5-lightgrey)](https://expressjs.com/)
-[![Tests](https://img.shields.io/badge/tests-107%2F107%20passing-success)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-114%2F114%20passing-success)](#running-tests)
 [![License](https://img.shields.io/badge/license-ISC-lightgrey)](./LICENSE)
 
 ---
@@ -117,7 +117,7 @@ forum-project/
 │   ├── script.js               # + media/password/report logic
 │   ├── style.css
 │   └── favicon.svg
-├── tests/                      # 17 suites + f04.db-encryption = 18 suites (107 tests)
+├── tests/                      # 18 suites + f04.db-encryption = 18 suites (114 tests)
 ├── docs/
 ├── scripts/
 │   ├── backup-db.js            # P21
@@ -230,7 +230,7 @@ head -c 16 data/forum.db | od -c
 ## Running Tests
 
 ```bash
-npm test             # 18 suites, 107 tests (includes P21)
+npm test             # 18 suites, 114 tests (includes P21 + Week-1 fixes)
 npm test -- f04      # specific feature
 npm test -- db-encryption  # P21 only
 ```
@@ -264,4 +264,4 @@ npm test -- db-encryption  # P21 only
 | **F04** | Security & Sessions | ✅ Complete |
 | **F05** | Moderation | ✅ Complete |
 | **F06** | Advanced Features | ✅ Complete |
-| **Total** | **Full Stack Community + P21** | **✅ 107/107 Tests** |
+| **Total** | **Full Stack Community + P21 + Week-1 fixes** | **✅ 114/114 Tests** |
