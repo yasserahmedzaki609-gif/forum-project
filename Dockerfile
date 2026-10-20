@@ -26,7 +26,14 @@ COPY scripts ./scripts
 COPY server.js ./
 COPY entrypoint.sh ./
 
-RUN mkdir -p /app/data /app/certs /app/media && chown -R app:app /app
+# F04-FIX (C7): Don't chown /app/certs. Fresh Docker volumes inherit the
+# image's directory ownership. If /app/certs is 1001:1001 in the image,
+# the fresh volume is 1001:1001, and openssl (as root without DAC_OVERRIDE)
+# can't write. Keep /app/certs root:root in the image, and let entrypoint
+# chown it to 1001 AFTER cert generation.
+RUN mkdir -p /app/data /app/certs /app/media && \
+    chown -R app:app /app/data /app/media && \
+    chown root:root /app/certs
 
 EXPOSE 3000
 

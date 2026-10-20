@@ -130,6 +130,37 @@ app.use((req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
+// F04-FIX (H1): Health check endpoint
+// ---------------------------------------------------------------------------
+// Reports DB connectivity + uptime. Used by the Docker healthcheck so that
+// a container stuck at boot (e.g., DB locked) is restarted automatically.
+// Returns 503 if the DB is unreachable — the Docker daemon will mark it
+// as unhealthy and restart per the restart policy.
+//
+// Public (no auth) — the response never contains sensitive data. If you
+// later add request-level info here, guard it behind a token.
+// ---------------------------------------------------------------------------
+app.get('/health', (req, res) => {
+  try {
+    // Lazy require so the module isn't pulled before migrations run.
+    const db = require('./database/db');
+    db.prepare('SELECT 1').get();
+    res.json({
+      status: 'ok',
+      db: 'ok',
+      uptime: Math.floor(process.uptime()),
+      version: require('../package.json').version,
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: 'degraded',
+      db: 'down',
+      error: err.message,
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Static files
 // ---------------------------------------------------------------------------
 // Serves public/ (HTML, CSS, JS). Media files are NOT served here —
