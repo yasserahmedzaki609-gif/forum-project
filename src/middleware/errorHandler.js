@@ -42,8 +42,16 @@ function errorHandler(err, req, res, next) {
 
   res.status(status).json({
     error: safeMessage,
-    // In development, include code + stack for debugging.
-    ...(config.isProd ? {} : { code: err.code, stack: err.stack }),
+    // F04-FIX (H1+): Only expose code + stack in explicit development mode.
+    //
+    // Previously this used `config.isProd ? {} : {...}`, which included
+    // stack in BOTH development AND test environments. But test mode has
+    // no legitimate reason to leak stack — stack traces are still written
+    // to server-side logs (logger.error) for developers, so nothing is lost.
+    //
+    // This is defense in depth: production, test, and any future NODE_ENV
+    // other than 'development' will hide internal details from HTTP clients.
+    ...(config.env === 'development' ? { code: err.code, stack: err.stack } : {}),
   });
 }
 
