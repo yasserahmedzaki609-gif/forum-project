@@ -20,6 +20,18 @@ async function resetDb() {
   // Ensure memory mode + isolated media root.
   process.env.DB_PATH = ':memory:';
   process.env.MEDIA_ROOT = './media/test';
+  process.env.DB_PASSWORD = ''; // F04-FIX (G1): Explicitly clear password for in-memory tests
+
+  // F04-FIX (G1): Wipe the media test directory so each test file starts
+  // from a clean slate. Without this, media.lifecycle.test.js and
+  // media.security.test.js can interfere with media.upload.test.js
+  // depending on Jest's execution order.
+  const fs = require('fs');
+  const path = require('path');
+  const mediaRoot = path.resolve('./media/test');
+  if (fs.existsSync(mediaRoot)) {
+    fs.rmSync(mediaRoot, { recursive: true, force: true });
+  }
 
   // Clear Jest's module registry so the next require() starts fresh.
   jest.resetModules();
