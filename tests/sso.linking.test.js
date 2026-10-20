@@ -114,3 +114,95 @@ describe('SSO — Unverified Email Protection', () => {
     expect(attackerIdentity).toBeUndefined();
   });
 });
+
+// ============================================================================
+// SSO — First-User Admin Bootstrap (B1)
+// ----------------------------------------------------------------------------
+// Regression tests for the bootstrapping hole: if the very first user ever
+// to touch the system signs up via SSO, they must become admin, not a
+// regular user. Otherwise the deployment has no admin and no way to
+// promote anyone.
+// ============================================================================
+describe('SSO — First-User Admin Bootstrap (B1)', () => {
+  let freshApp;
+
+  beforeAll(async () => {
+    await resetDb();
+    freshApp = require('../src/app');
+  });
+
+  test('B1: first-ever user via SSO becomes admin', async () => {
+    const db = require('../src/database/db');
+    expect(db.prepare('SELECT COUNT(*) AS c FROM users').get().c).toBe(0);
+
+    const googleProvider = require('../src/auth/providers/google.provider');
+    googleProvider.exchangeCode.mockImplementationOnce(async () => ({
+      provider: 'google',
+      providerUserId: 'bootstrap-g-1',
+      email: 'bootstrap@example.com',
+      emailVerified: true,
+      displayName: 'Bootstrap User',
+      avatarUrl: null,
+    }));
+
+    const agent = request.agent(freshApp);
+    const start = await agent.get('/auth/google');
+    const state = new URL(start.headers.location).searchParams.get('state');
+    const cb = await agent.get(`/auth/google/callback?code=ok&state=${state}`);
+    expect(cb.status).toBe(302);
+
+    const user = db
+      .prepare('SELECT id, role FROM users WHERE email = ?')
+      .get('bootstrap@example.com');
+    expect(user).toBeDefined();
+    expect(user.role).toBe('admin');
+  });
+
+  test('B1: second user via SSO becomes regular user', async () => {
+    const db = require('../src/database/db');
+    const googleProvider = require('../src/auth/providers/google.provider');
+    googleProvider.exchangeCode.mockImplementationOnce(async () => ({
+      provider: 'google',
+      providerUserId: 'bootstrap-g-2',
+      email: 'second@example.com',
+      emailVerified: true,
+      displayName: 'Second User',
+      avatarUrl: null,
+    }));
+
+    const agent = request.agent(freshApp);
+    const start = await agent.get('/auth/google');
+    const state = new URL(start.headers.location).searchParams.get('state');
+    await agent.get(`/auth/google/callback?code=ok&state=${state}`);
+
+    const user = db
+      .prepare('SELECT role FROM users WHERE email = ?')
+      .get('second@example.com');
+    expect(user.role).toBe('user');
+  });
+
+  test('B1: local register still makes first user admin (regression)', async () => {
+    await resetDb();
+    const localApp = require('../src/app');
+
+    const db = require('../src/database/db');
+    expect(db.prepare('SELECT COUNT(*) AS c FROM users').get().c).toBe(0);
+
+    const agent = request.agent(localApp);
+    const { token } = await getCsrfFor(agent);
+    const res = await agent
+      .post('/register')
+      .set('x-csrf-token', token)
+      .send({
+        username: 'firstlocal',
+        email: 'firstlocal@e.com',
+        password: 'longpassword',
+      });
+    expect(res.status).toBe(201);
+
+    const user = db
+      .prepare('SELECT role FROM users WHERE username = ?')
+      .get('firstlocal');
+    expect(user.role).toBe('admin');
+  });
+});

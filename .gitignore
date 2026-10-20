@@ -47,3 +47,5 @@ Thumbs.db
 # ---- Build artifacts (not applicable, kept for safety) ----
 dist/
 build/
+# Build artifacts
+combined_project.txt

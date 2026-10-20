@@ -88,12 +88,15 @@ function logout(req, res, next) {
 // ---------------------------------------------------------------------------
 function me(req, res) {
   if (!req.user) return res.status(401).json({ loggedIn: false });
+  
+  // F04-FIX (B5): Do not leak the internal session ID to the client.
+  // The client already has the signed cookie; the raw UUID serves no purpose
+  // and could end up in browser logs, screenshots, or error reporters.
   res.json({
     loggedIn: true,
-    id: req.user.id,           // ⬅️ Added for F06 frontend ownership checks
+    id: req.user.id,
     username: req.user.username,
     role: req.user.role,
-    sessionId: req.user.sessionId,
   });
 }
 

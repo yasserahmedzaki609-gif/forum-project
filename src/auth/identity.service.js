@@ -45,9 +45,16 @@ const stmtUsernameExists = db.prepare(
   'SELECT 1 FROM users WHERE username = ?'
 );
 
+// F04-FIX (B1): Include `role` so we can bootstrap the first-ever user
+// (whether local or SSO) as admin. Without this, an SSO-first deployment
+// has no admin at all, since auth.controller.register is the only place
+// that currently assigns admin.
 const stmtInsertUser = db.prepare(
-  'INSERT INTO users (username, email, password) VALUES (?, ?, ?)'
+  'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)'
 );
+
+// Used to decide if this is the very first user in the system.
+const stmtCountUsers = db.prepare('SELECT COUNT(*) AS c FROM users');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -167,7 +174,20 @@ const loginTx = db.transaction((profile) => {
   }
 
   const username = buildUniqueUsername(displayName || email.split('@')[0]);
-  const info = stmtInsertUser.run(username, email, unusablePasswordHash());
+
+  // F04-FIX (B1): Bootstrap the very first user in the system as admin,
+  // regardless of whether they came via local register or via SSO.
+  // This closes a hole where an SSO-first deployment had no admin and
+  // therefore no way to bootstrap moderation.
+  const isFirstUser = stmtCountUsers.get().c === 0;
+  const role = isFirstUser ? 'admin' : 'user';
+
+  const info = stmtInsertUser.run(
+    username,
+    email,
+    unusablePasswordHash(),
+    role
+  );
   const userId = info.lastInsertRowid;
 
   stmtInsertIdentity.run(
@@ -179,7 +199,13 @@ const loginTx = db.transaction((profile) => {
     avatarUrl || null
   );
 
-  logger.info(`Created new user ${userId} via ${provider}`);
+  if (isFirstUser) {
+    logger.info(
+      `Bootstrapped first user (${username}, id=${userId}) as admin via ${provider}`
+    );
+  } else {
+    logger.info(`Created new user ${userId} via ${provider} (role=${role})`);
+  }
   return { userId, created: true, linked: false };
 });
 
