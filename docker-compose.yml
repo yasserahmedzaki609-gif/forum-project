@@ -79,10 +79,13 @@ services:
     cap_drop:
       - ALL
     cap_add:
+      # F04-FIX (C7): DAC_OVERRIDE removed — we only need CHOWN for the
+      # entrypoint's directory ownership fixes and SETUID/SETGID for su-exec.
+      # DAC_OVERRIDE would allow bypassing file permissions entirely, which
+      # is an unnecessary privilege for a read-only-filesystem container.
       - CHOWN
       - SETUID
       - SETGID
-      - DAC_OVERRIDE
 
     # Graceful shutdown: give the app 30s to drain in-flight requests
     stop_grace_period: 30s

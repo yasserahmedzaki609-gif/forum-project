@@ -62,7 +62,7 @@ describe('Security', () => {
     const res = await request(app).get(
       "/api/posts?category=' OR 1=1 --"
     );
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(404); // Or 400 depending on your validation layer
   });
 
   test('security headers are set', async () => {
@@ -76,5 +76,19 @@ describe('Security', () => {
     const res = await request(app).get('/api/posts?filter=my_posts');
     expect(res.status).toBe(401);
     expect(res.body.error).toBeDefined();
+    expect(res.body.stack).toBeUndefined(); // Strategic addition: ensure stack is hidden
+  });
+
+  // ------------------------------------------------------------------------
+  // H1: Infrastructure Health Contract Validation
+  // ------------------------------------------------------------------------
+  test('H1: /health returns 200 with db=ok', async () => {
+    const res = await request(app).get('/health');
+    
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
+    expect(res.body.db).toBe('ok');
+    expect(typeof res.body.uptime).toBe('number');
+    expect(res.body.version).toBeDefined();
   });
 });
