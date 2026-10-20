@@ -111,6 +111,19 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many uploads, please wait.' },
 });
 
+// ---------------------------------------------------------------------------
+// F04-FIX (C2): Report submission: user-based, prevents flooding the
+// moderation queue with bogus reports (DoS on moderators).
+// ---------------------------------------------------------------------------
+const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,                    // 5 reports/hour/user
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: userOrIpKey,
+  message: { error: 'Too many reports submitted. Please wait.' },
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
@@ -119,4 +132,5 @@ module.exports = {
   commentCreateLimiter,
   reactionLimiter,
   uploadLimiter,
+  reportLimiter,  // ← جديد
 };

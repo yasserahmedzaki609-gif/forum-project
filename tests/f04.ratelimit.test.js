@@ -100,4 +100,31 @@ describe('F04 — Rate Limiting', () => {
       .send({ content: 'Blocked' });
     expect(blocked.status).toBe(429);
   });
+
+  test('C2: report submission blocked after 5 reports/hour', async () => {
+    const agent = request.agent(app);
+    const { token } = await getCsrfFor(agent);
+
+    await agent.post('/register').set('x-csrf-token', token)
+      .send({ username: 'reporter', email: 'r@e.com', password: 'longpassword' });
+    await agent.post('/login').set('x-csrf-token', token)
+      .send({ username: 'reporter', password: 'longpassword' });
+
+    // Create a post to report
+    const post = await agent.post('/api/posts').set('x-csrf-token', token)
+      .send({ title: 'Report target', content: 'Body', categoryIds: [1] });
+    const postId = post.body.id;
+
+    // First 5 reports succeed
+    for (let i = 0; i < 5; i++) {
+      const r = await agent.post('/api/reports').set('x-csrf-token', token)
+        .send({ targetType: 'post', targetId: postId, reason: `Spam ${i}` });
+      expect(r.status).toBe(201);
+    }
+
+    // 6th is blocked
+    const blocked = await agent.post('/api/reports').set('x-csrf-token', token)
+      .send({ targetType: 'post', targetId: postId, reason: 'Spam 6' });
+    expect(blocked.status).toBe(429);
+  });
 });

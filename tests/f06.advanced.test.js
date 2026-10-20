@@ -142,4 +142,24 @@ describe('F06 — Advanced Features', () => {
     const list = await request(app).get('/api/posts');
     expect(list.body.data.some(p => p.id === postId)).toBe(false);
   });
+
+  test('B4: like→unlike→like produces only one notification (dedup)', async () => {
+    // Fresh post owned by user A
+    const postRes = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+      .send({ title: 'Dedup test post', content: 'Body', categoryIds: [1] });
+    const dedupPostId = postRes.body.id;
+
+    // User B: like → unlike → like
+    await userB.post(`/api/posts/${dedupPostId}/like`).set('x-csrf-token', tokenB);
+    await userB.post(`/api/posts/${dedupPostId}/like`).set('x-csrf-token', tokenB); // toggle off
+    await userB.post(`/api/posts/${dedupPostId}/like`).set('x-csrf-token', tokenB); // toggle on again
+
+    // User A should have exactly ONE like notification for this post
+    const notifs = await userA.get('/api/notifications');
+    expect(notifs.status).toBe(200);
+    const likeNotifs = notifs.body.filter(
+      n => n.type === 'like' && n.target_id === dedupPostId
+    );
+    expect(likeNotifs.length).toBe(1);
+  });
 });

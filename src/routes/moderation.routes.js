@@ -15,6 +15,7 @@ const {
 } = require('../validators/moderation.validator');
 const { validate } = require('../middleware/validate');
 const { requireAuth, requireModerator, requireAdmin } = require('../middleware/auth');
+const { reportLimiter } = require('../middleware/rateLimit'); // ⬅️ F04-FIX (C2)
 
 // --- Admin: User role management ---
 router.patch(
@@ -53,6 +54,7 @@ router.patch(
 router.post(
   '/api/reports',
   requireAuth,
+  reportLimiter,   // ← F04-FIX (C2): Prevents flooding the moderation queue
   validate(validateReport),
   moderationCtrl.createReport
 );
