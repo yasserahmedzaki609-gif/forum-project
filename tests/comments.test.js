@@ -1,5 +1,5 @@
 require('./setup');
-const { resetDb, getCsrfFor, request, approveComment } = require('./helpers'); // ← تمت إضافة approveComment
+const { resetDb, getCsrfFor, request, approveComment } = require('./helpers');
 
 let app, agent, csrf, postId;
 
@@ -77,5 +77,23 @@ describe('Comments', () => {
       .set('x-csrf-token', csrf)
       .send({ content: 'hi' });
     expect(res.status).toBe(404);
+  });
+
+  // D4 Test: Must be at the end to avoid interfering with other tests
+  test('D4: author can see their own pending comment', async () => {
+    // Create a pending comment (post-P24, all new comments are pending)
+    const c = await agent.post(`/api/posts/${postId}/comments`)
+      .set('x-csrf-token', csrf)
+      .send({ content: 'This stays pending' });
+    expect(c.status).toBe(201);
+    const pendingId = c.body.id;
+
+    // Author (agent is logged in) should see it in the list
+    const authorView = await agent.get(`/api/posts/${postId}/comments`);
+    expect(authorView.body.some(cmt => cmt.id === pendingId)).toBe(true);
+
+    // Guest should NOT see it
+    const guestView = await request(app).get(`/api/posts/${postId}/comments`);
+    expect(guestView.body.some(cmt => cmt.id === pendingId)).toBe(false);
   });
 });

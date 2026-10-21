@@ -1,15 +1,12 @@
 // ============================================================================
-// src/controllers/comments.controller.js — Comments + F06 + P25
+// src/controllers/comments.controller.js — Comments + F06 + P25 + D4
 // ============================================================================
 
 const commentModel = require('../models/comment.model');
 const postModel = require('../models/post.model');
-const commentService = require('../services/comment.service'); // ← P25 Service Layer
+const commentService = require('../services/comment.service');
+const activityModel = require('../models/activity.model'); // ← Moved to top for cleanliness
 const { HttpError } = require('../middleware/errorHandler');
-
-// ملاحظة: تم إزالة reactionModel, notificationModel, و activityModel 
-// لأن منطقها انتقل الآن إلى داخل commentService لضمان الذرية (Atomicity)،
-// مما يمنع تحذيرات ESLint حول المتغيرات غير المستخدمة.
 
 // ---------------------------------------------------------------------------
 // GET /api/posts/:postId/comments
@@ -23,7 +20,10 @@ function listComments(req, res, next) {
     if (!postModel.findById(postId)) {
       throw new HttpError(404, 'Post not found');
     }
-    res.json(commentModel.findByPost(postId));
+    
+    // D4: pass viewerId so the author can see their own pending comments
+    const viewerId = req.user ? req.user.id : null;
+    res.json(commentModel.findByPost(postId, viewerId));
   } catch (err) {
     next(err);
   }
@@ -81,9 +81,7 @@ function updateComment(req, res, next) {
       throw new HttpError(409, 'Comment was modified by someone else. Please reload.');
     }
 
-    // ملاحظة: تسجيل النشاط (Activity Log) يمكن نقله أيضاً للخدمة لاحقاً إذا لزم الأمر،
-    // لكن إبقاؤه هنا مقبول طالما أنه عملية قراءة/كتابة منفصلة لا تؤثر على سلامة التعليق نفسه.
-    const activityModel = require('../models/activity.model'); // Local require if strictly needed here, or move to service
+    // Activity Log
     activityModel.log(req.user.id, 'comment_edit', 'comment', commentId);
 
     res.json({ ok: true });

@@ -1,9 +1,10 @@
 // ============================================================================
-// src/controllers/auth.controller.js — F04 hardened auth + F05 roles
+// src/controllers/auth.controller.js — F04 hardened auth + F05 roles + D5
 // ============================================================================
 
 const userModel = require('../models/user.model');
 const sessionModel = require('../models/session.model');
+const identityModel = require('../models/identity.model'); // ← D5: Added at top level
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { fingerprint } = require('../utils/hash');
 const { HttpError } = require('../middleware/errorHandler');
@@ -88,15 +89,19 @@ function logout(req, res, next) {
 // ---------------------------------------------------------------------------
 function me(req, res) {
   if (!req.user) return res.status(401).json({ loggedIn: false });
-  
-  // F04-FIX (B5): Do not leak the internal session ID to the client.
-  // The client already has the signed cookie; the raw UUID serves no purpose
-  // and could end up in browser logs, screenshots, or error reporters.
+
+  // D5: include linked SSO identities so the UI can render "Connected Accounts"
+  const identities = identityModel.listForUser(req.user.id);
+
   res.json({
     loggedIn: true,
     id: req.user.id,
     username: req.user.username,
     role: req.user.role,
+    identities: identities.map((i) => ({
+      provider: i.provider,
+      email: i.email,
+    })),
   });
 }
 
@@ -118,13 +123,10 @@ async function changePassword(req, res, next) {
     const updated = userModel.updatePassword(userId, newHash);
     if (!updated) throw new HttpError(500, 'Failed to update password');
 
-    // F04-FIX (B2): Invalidate ALL sessions for this user, not just the current one.
-    // If the password was leaked, changing it must force every device to re-authenticate.
-    // Without this, an attacker on another device keeps working even after the user
-    // "changed their password" — a critical security flaw.
+    // F04-FIX (B2): Invalidate ALL sessions for this user
     sessionModel.deleteAllForUser(userId);
 
-    // Then create a fresh session for the CURRENT device so the user stays logged in.
+    // Then create a fresh session for the CURRENT device
     const newSession = sessionModel.create(
       userId,
       config.session.maxAgeMs,

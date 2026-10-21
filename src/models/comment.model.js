@@ -4,13 +4,15 @@ const stmtInsert = db.prepare(
   'INSERT INTO comments (content, user_id, post_id, status, updated_at) VALUES (?, ?, ?, ?, strftime(\'%Y-%m-%d %H:%M:%f\', \'now\'))'
 );
 
+// D4: Pending comments must remain visible to their owner
 const stmtByPost = db.prepare(`
   SELECT c.id, c.content, c.created_at, c.updated_at, c.status, c.user_id, u.username AS author,
     COALESCE(SUM(CASE WHEN r.value = 1  THEN 1 ELSE 0 END), 0) AS likes_count,
     COALESCE(SUM(CASE WHEN r.value = -1 THEN 1 ELSE 0 END), 0) AS dislikes_count
   FROM comments c JOIN users u ON u.id = c.user_id
   LEFT JOIN reactions r ON r.target_type = 'comment' AND r.target_id = c.id
-  WHERE c.post_id = ? AND c.status = 'approved'
+  WHERE c.post_id = ?
+    AND (c.status = 'approved' OR c.user_id = ?)
   GROUP BY c.id ORDER BY c.created_at ASC
 `);
 
@@ -34,7 +36,8 @@ function listPending() {
 }
 
 module.exports = {
-  findByPost: (postId) => stmtByPost.all(postId),
+  // D4: accepts viewerId to allow the author to see their own pending comments
+  findByPost: (postId, viewerId = null) => stmtByPost.all(postId, viewerId),
   findById: (id) => stmtById.get(id),
   create: (content, userId, postId, status = 'approved') => {
     const info = stmtInsert.run(content, userId, postId, status);
