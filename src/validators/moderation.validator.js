@@ -48,10 +48,34 @@ function validateCreateCategory(req) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// P23: Role Request validators
+// ---------------------------------------------------------------------------
+function validateRoleRequest(req) {
+  const { requestedRole, reason } = req.body || {};
+
+  if (!['moderator', 'admin'].includes(requestedRole)) {
+    throw new HttpError(400, 'requestedRole must be moderator or admin');
+  }
+
+  if (typeof reason !== 'string' || reason.trim().length < 10 || reason.length > 1000) {
+    throw new HttpError(400, 'Reason must be 10-1000 characters');
+  }
+}
+
+function validateRoleRequestReview(req) {
+  const { action } = req.body || {};
+  if (!['approve', 'reject'].includes(action)) {
+    throw new HttpError(400, 'action must be approve or reject');
+  }
+}
+
 module.exports = {
   validateRoleChange,
   validateStatusChange,
   validateReport,
   validateReportStatus,
   validateCreateCategory,
+  validateRoleRequest,        
+  validateRoleRequestReview,  
 };

@@ -1,5 +1,5 @@
 // ============================================================================
-// src/routes/moderation.routes.js — F05 routes
+// src/routes/moderation.routes.js — F05 & P23 routes
 // ============================================================================
 
 const express = require('express');
@@ -12,12 +12,17 @@ const {
   validateReport,
   validateReportStatus,
   validateCreateCategory,
+  validateRoleRequest,        // ← جديد (P23)
+  validateRoleRequestReview,  // ← جديد (P23)
 } = require('../validators/moderation.validator');
+
 const { validate } = require('../middleware/validate');
 const { requireAuth, requireModerator, requireAdmin } = require('../middleware/auth');
 const { reportLimiter } = require('../middleware/rateLimit'); // ⬅️ F04-FIX (C2)
 
-// --- Admin: User role management ---
+// ===========================================================================
+// Admin: User role management
+// ===========================================================================
 router.patch(
   '/api/users/:id/role',
   requireAuth,
@@ -26,7 +31,9 @@ router.patch(
   moderationCtrl.changeUserRole
 );
 
-// --- Moderator: Queue ---
+// ===========================================================================
+// Moderator: Queue & Status Management
+// ===========================================================================
 router.get(
   '/api/moderation/queue',
   requireAuth,
@@ -50,7 +57,9 @@ router.patch(
   moderationCtrl.changeCommentStatus
 );
 
-// --- Reports ---
+// ===========================================================================
+// Reports (Authenticated users can report, Moderators can manage)
+// ===========================================================================
 router.post(
   '/api/reports',
   requireAuth,
@@ -74,13 +83,51 @@ router.patch(
   moderationCtrl.updateReport
 );
 
-// --- Admin: Categories ---
+// ===========================================================================
+// Admin: Categories
+// ===========================================================================
 router.post(
   '/api/admin/categories',
   requireAuth,
   requireAdmin,
   validate(validateCreateCategory),
   moderationCtrl.createCategory
+);
+
+// ===========================================================================
+// P23: Role Requests Workflow
+// ===========================================================================
+
+// Any authenticated user can submit a role request
+router.post(
+  '/api/roles/request',
+  requireAuth,
+  validate(validateRoleRequest),
+  moderationCtrl.createRoleRequest
+);
+
+// User can view their own request history
+router.get(
+  '/api/roles/me',
+  requireAuth,
+  moderationCtrl.listMyRoleRequests
+);
+
+// Moderators can see the pending queue (to be aware of demand)
+router.get(
+  '/api/moderation/role-requests',
+  requireAuth,
+  requireModerator,
+  moderationCtrl.listRoleRequests
+);
+
+// Only admins can review (approve/reject) — moderators cannot promote users
+router.patch(
+  '/api/moderation/role-requests/:id',
+  requireAuth,
+  requireAdmin, // ⚠️ Security Note: Strictly Admin. Moderators cannot escalate privileges.
+  validate(validateRoleRequestReview),
+  moderationCtrl.reviewRoleRequest
 );
 
 module.exports = router;

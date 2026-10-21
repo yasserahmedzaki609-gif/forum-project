@@ -1,5 +1,5 @@
 // ============================================================================
-// src/controllers/moderation.controller.js — F05
+// src/controllers/moderation.controller.js — F05 & P23
 // ============================================================================
 
 const userModel = require('../models/user.model');
@@ -7,7 +7,13 @@ const postModel = require('../models/post.model');
 const commentModel = require('../models/comment.model');
 const reportModel = require('../models/report.model');
 const categoryModel = require('../models/category.model');
+const roleRequestModel = require('../models/roleRequest.model'); // ← جديد (P23)
+
 const { HttpError } = require('../middleware/errorHandler');
+const { 
+  validateRoleRequest, 
+  validateRoleRequestReview 
+} = require('../validators/moderation.validator'); // ← استيراد المحققين
 
 // ---------------------------------------------------------------------------
 // PATCH /api/users/:id/role (Admin only)
@@ -148,6 +154,109 @@ function createCategory(req, res, next) {
   }
 }
 
+// ===========================================================================
+// P23: Role Request Workflow
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// POST /api/roles/request — any authenticated user
+// ---------------------------------------------------------------------------
+function createRoleRequest(req, res, next) {
+  try {
+    // 1. Validate input strictly
+    validateRoleRequest(req);
+
+    const { requestedRole, reason } = req.body;
+
+    // 2. One pending request per user — prevents spam.
+    const existing = roleRequestModel.findPendingByUser(req.user.id);
+    if (existing) {
+      throw new HttpError(409, 'You already have a pending role request');
+    }
+
+    // 3. Users cannot request a role they already have.
+    if (req.user.role === requestedRole) {
+      throw new HttpError(400, `You are already a ${requestedRole}`);
+    }
+
+    // 4. Policy: Regular users cannot request 'admin' directly.
+    if (requestedRole === 'admin' && req.user.role !== 'moderator') {
+      throw new HttpError(403, 'Only moderators can request admin promotion');
+    }
+
+    const r = roleRequestModel.create(req.user.id, requestedRole, reason.trim());
+    res.status(201).json({ id: r.id, status: 'pending' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/moderation/role-requests — moderators/admin can view queue
+// ---------------------------------------------------------------------------
+function listRoleRequests(req, res, next) {
+  try {
+    res.json(roleRequestModel.listPending());
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PATCH /api/moderation/role-requests/:id — admin only
+// ---------------------------------------------------------------------------
+function reviewRoleRequest(req, res, next) {
+  try {
+    // 1. Validate input strictly
+    validateRoleRequestReview(req);
+
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new HttpError(400, 'Invalid request id');
+    }
+
+    const { action } = req.body;
+
+    // 2. Execute review
+    let result;
+    if (action === 'approve') {
+      result = roleRequestModel.approve(id, req.user.id);
+    } else {
+      result = roleRequestModel.reject(id, req.user.id);
+    }
+
+    // 3. Handle business logic errors gracefully
+    if (!result.ok) {
+      if (result.reason === 'not_found') {
+        throw new HttpError(404, 'Role request not found');
+      }
+      if (result.reason === 'already_reviewed') {
+        throw new HttpError(409, 'Role request already reviewed');
+      }
+      throw new HttpError(500, 'Failed to review role request');
+    }
+
+    res.json({
+      ok: true,
+      action,
+      ...(result.userId ? { userId: result.userId, role: result.role } : {}),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/roles/me — current user's own request history
+// ---------------------------------------------------------------------------
+function listMyRoleRequests(req, res, next) {
+  try {
+    res.json(roleRequestModel.listByUser(req.user.id));
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   changeUserRole,
   listQueue,
@@ -157,4 +266,8 @@ module.exports = {
   listReports,
   updateReport,
   createCategory,
+  createRoleRequest,      
+  listRoleRequests,       
+  reviewRoleRequest,      
+  listMyRoleRequests,     
 };

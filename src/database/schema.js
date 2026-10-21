@@ -320,6 +320,45 @@ const migrations = [
       CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_logs(user_id, created_at DESC);
     `),
   },
+
+  // -------------------------------------------------------------------------
+  // 014 — Role Requests (P23)
+  // -------------------------------------------------------------------------
+  // Users can request promotion to moderator/admin. Admins review requests
+  // from the moderation dashboard.
+  //
+  // Why not reuse `reports`? Different lifecycle:
+  //   - reports: user flags content for review → moderator resolves
+  //   - role_requests: user asks for role → admin approves/rejects
+  // They have different "reviewer" roles and different target types.
+  //
+  // ⚠️ Architectural Note: reviewed_by uses ON DELETE SET NULL (not CASCADE).
+  // If an admin account is deleted, the review record remains for audit purposes
+  // with reviewed_by = NULL. This is the correct design decision for immutability.
+  // -------------------------------------------------------------------------
+  {
+    name: '014_role_requests',
+    up: () => db.exec(`
+      CREATE TABLE IF NOT EXISTS role_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        requested_role TEXT NOT NULL
+          CHECK(requested_role IN ('moderator', 'admin')),
+        reason TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending'
+          CHECK(status IN ('pending', 'approved', 'rejected')),
+        reviewed_by INTEGER,
+        reviewed_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_role_requests_status
+        ON role_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_role_requests_user
+        ON role_requests(user_id);
+    `),
+  },
 ];
 
 // ---------------------------------------------------------------------------
