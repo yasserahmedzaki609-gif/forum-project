@@ -11,6 +11,7 @@
     "db:inspect": "node scripts/inspect-db.js",
     "db:backup": "node scripts/backup-db.js",
     "db:restore": "node scripts/restore-db.js",
+    "db:observatory": "node scripts/index-observatory.js",
     "media:cleanup": "node scripts/cleanup-media.js",
     "media:seed-demo": "node scripts/seed-demo-media.js",
     "test": "jest --runInBand --detectOpenHandles",
@@ -52,7 +53,9 @@
     "brace-expansion": "^1.1.12"
   },
   "jest": {
-    "setupFiles": ["<rootDir>/tests/setup.js"],
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ],
     "testEnvironment": "node",
     "testTimeout": 15000
   }
