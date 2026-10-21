@@ -158,6 +158,19 @@
       </div>
     </div>
 
+    <!-- D1: Comment Edit Modal -->
+    <div id="comment-edit-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Edit Comment</h3>
+        <textarea id="comment-edit-content" placeholder="Comment content" rows="4" maxlength="2000"></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="comment-edit-save-btn" type="button" style="background: #27ae60;">Save</button>
+          <button id="comment-edit-cancel-btn" type="button" style="background: #95a5a6;">Cancel</button>
+        </div>
+        <p id="comment-edit-error" class="message"></p>
+      </div>
+    </div>
+
     <!-- F06: Activity Feed -->
     <div id="activity-section" class="hidden">
       <h3>My Activity</h3>

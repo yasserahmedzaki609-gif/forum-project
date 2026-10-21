@@ -489,6 +489,7 @@ async function loadComments(postId) {
     const div = document.createElement('div');
     div.className = 'comment-card';
     const isOther = state.isLoggedIn && c.user_id !== state.userId;
+    const isOwner = state.isLoggedIn && c.user_id === state.userId;
 
     div.innerHTML = `
       <span class="comment-author">${escapeHtml(c.author)}</span>
@@ -497,6 +498,10 @@ async function loadComments(postId) {
       <div class="likes-section">
         <button type="button" class="like-btn" data-caction="like" data-comment="${c.id}" data-post="${postId}">Like (${c.likes_count || 0})</button>
         <button type="button" class="dislike-btn" data-caction="dislike" data-comment="${c.id}" data-post="${postId}">Dislike (${c.dislikes_count || 0})</button>
+        ${isOwner ? `
+          <button type="button" class="btn-edit-comment" data-edit-comment="${c.id}" data-post="${postId}" style="flex: 0; padding: 8px 12px; font-size: 12px; width: auto;">Edit</button>
+          <button type="button" class="btn-delete-comment" data-delete-comment="${c.id}" data-post="${postId}" style="flex: 0; padding: 8px 12px; font-size: 12px; width: auto;">Delete</button>
+        ` : ''}
         ${isOther ? `<button type="button" class="btn-report-comment" data-report-comment="${c.id}" style="background: #e74c3c; flex: 0; padding: 8px 12px; font-size: 12px; width: auto;">Report</button>` : ''}
       </div>
     `;
@@ -513,6 +518,19 @@ async function loadComments(postId) {
     btn.addEventListener('click', () => {
       openReportModal('comment', parseInt(btn.dataset.reportComment, 10));
     });
+  });
+
+  // D1: Comment edit/delete handlers
+  container.querySelectorAll('[data-edit-comment]').forEach((btn) => {
+    btn.addEventListener('click', () =>
+      openCommentEditModal(btn.dataset.editComment, btn.dataset.post)
+    );
+  });
+
+  container.querySelectorAll('[data-delete-comment]').forEach((btn) => {
+    btn.addEventListener('click', () =>
+      deleteCommentUI(btn.dataset.deleteComment, btn.dataset.post)
+    );
   });
 }
 
@@ -699,6 +717,7 @@ async function loadNotifications() {
 }
 
 let editingPost = null;
+let editingComment = null; // ← D1: State variable for comment editing
 
 async function openEditModal(postId) {
   const { ok, body } = await api(`/api/posts/${postId}`);
@@ -894,6 +913,62 @@ async function unlinkIdentity(provider) {
 }
 
 // ============================================================================
+// D1: Comment Edit/Delete UI
+// ============================================================================
+
+async function openCommentEditModal(commentId, postId) {
+  // Fetch current comment data
+  const res = await api(`/api/posts/${postId}/comments`);
+  if (!res.ok) { setMessage('Failed to load comments'); return; }
+
+  const comment = res.body.find(c => c.id === parseInt(commentId, 10));
+  if (!comment) { setMessage('Comment not found'); return; }
+
+  editingComment = { id: comment.id, postId: parseInt(postId, 10), updatedAt: comment.updated_at };
+  document.getElementById('comment-edit-content').value = comment.content;
+  document.getElementById('comment-edit-error').textContent = '';
+  document.getElementById('comment-edit-modal').classList.remove('hidden');
+}
+
+async function saveCommentEdit() {
+  if (!editingComment) return;
+  const content = document.getElementById('comment-edit-content').value.trim();
+  const errorEl = document.getElementById('comment-edit-error');
+
+  if (!content) { errorEl.textContent = 'Content cannot be empty'; return; }
+  if (content.length > 2000) { errorEl.textContent = 'Content must be at most 2000 characters'; return; }
+
+  const res = await api(`/api/comments/${editingComment.id}`, {
+    method: 'PUT',
+    body: { content, updatedAt: editingComment.updatedAt },
+  });
+
+  if (res.ok) {
+    document.getElementById('comment-edit-modal').classList.add('hidden');
+    const postId = editingComment.postId;
+    editingComment = null;
+    await loadComments(postId);
+    await loadPosts();
+    setMessage('Comment updated');
+  } else {
+    errorEl.textContent = res.body.error || 'Failed to update comment';
+  }
+}
+
+async function deleteCommentUI(commentId, postId) {
+  if (!confirm('Delete this comment? This cannot be undone.')) return;
+
+  const res = await api(`/api/comments/${commentId}`, { method: 'DELETE' });
+  if (res.ok) {
+    await loadComments(postId);
+    await loadPosts();
+    setMessage('Comment deleted');
+  } else {
+    setMessage(res.body.error || 'Failed to delete comment');
+  }
+}
+
+// ============================================================================
 // Wire up listeners
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -909,6 +984,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('edit-cancel-btn')?.addEventListener('click', () => {
     document.getElementById('edit-modal').classList.add('hidden');
     editingPost = null;
+  });
+
+  // D1: Comment edit modal handlers
+  document.getElementById('comment-edit-save-btn')?.addEventListener('click', (e) =>
+    withLoading(e.currentTarget, saveCommentEdit));
+  document.getElementById('comment-edit-cancel-btn')?.addEventListener('click', () => {
+    document.getElementById('comment-edit-modal').classList.add('hidden');
+    editingComment = null;
   });
 
   document.getElementById('change-password-btn')?.addEventListener('click', () => {
