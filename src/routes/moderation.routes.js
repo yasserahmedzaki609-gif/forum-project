@@ -1,5 +1,5 @@
 // ============================================================================
-// src/routes/moderation.routes.js — F05 & P23 & C1 routes
+// src/routes/moderation.routes.js — F05 & P23 & C1 & D3 routes
 // ============================================================================
 
 const express = require('express');
@@ -138,6 +138,16 @@ router.get(
   requireAuth,
   requireAdmin,
   moderationCtrl.listAuditLog
+);
+
+// ===========================================================================
+// D3: Users list (admin only) for role management UI
+// ===========================================================================
+router.get(
+  '/api/users',
+  requireAuth,
+  requireAdmin,
+  moderationCtrl.listUsers
 );
 
 module.exports = router;

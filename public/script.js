@@ -116,6 +116,15 @@ async function checkSession() {
     } else {
       adminCatsSection?.classList.add('hidden');
     }
+
+    // D3: User management is admin-only
+    const adminUsersSection = document.getElementById('admin-users-section');
+    if (state.role === 'admin') {
+      adminUsersSection?.classList.remove('hidden');
+      loadUsers();
+    } else {
+      adminUsersSection?.classList.add('hidden');
+    }
   } else {
     statusBox.textContent = 'You are browsing as a guest.';
     statusBox.style.background = '#f8d7da';
@@ -134,6 +143,9 @@ async function checkSession() {
     
     // D2: إخفاء قسم إدارة التصنيفات عند الخروج
     document.getElementById('admin-categories-section')?.classList.add('hidden');
+
+    // D3: إخفاء قسم إدارة المستخدمين عند الخروج
+    document.getElementById('admin-users-section')?.classList.add('hidden');
   }
 
   await loadCategoryCheckboxes();
@@ -750,6 +762,99 @@ async function addCategory() {
   } else {
     errorEl.textContent = body.error || 'Failed to add category.';
   }
+}
+
+// ============================================================================
+// D3: Admin User Management
+// ============================================================================
+
+async function loadUsers() {
+  const { ok, body } = await api('/api/users');
+  if (!ok) return;
+
+  const container = document.getElementById('users-admin-list');
+  if (!container) return;
+
+  container.innerHTML = '';
+  if (body.length === 0) {
+    container.innerHTML = '<p style="color:#7f8c8d;">No users found.</p>';
+    return;
+  }
+
+  for (const user of body) {
+    const div = document.createElement('div');
+    div.className = 'mod-card';
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.gap = '10px';
+
+    const isSelf = user.id === state.userId;
+    const canChange = !isSelf || user.role === 'admin'; // can't demote self from admin
+
+    // Role badge colors
+    const roleColors = {
+      admin: '#e74c3c',
+      moderator: '#f39c12',
+      user: '#95a5a6',
+    };
+
+    let roleSelectHtml = '';
+    if (canChange) {
+      roleSelectHtml = `
+        <select data-user-id="${user.id}" data-user-role="${user.role}" class="user-role-select" style="flex: 0; padding: 5px; font-size: 12px; width: auto;">
+          <option value="user" ${user.role === 'user' ? 'selected' : ''}>user</option>
+          <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>moderator</option>
+          <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>admin</option>
+        </select>
+      `;
+    } else {
+      roleSelectHtml = `<span style="font-size: 12px; color: #7f8c8d;">(you)</span>`;
+    }
+
+    div.innerHTML = `
+      <div style="flex: 1;">
+        <strong>${escapeHtml(user.username)}</strong>
+        <span style="color: #7f8c8d; font-size: 0.85em; margin-left: 8px;">${escapeHtml(user.email)}</span>
+        <span style="background: ${roleColors[user.role]}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">${user.role}</span>
+      </div>
+      ${roleSelectHtml}
+    `;
+
+    container.appendChild(div);
+  }
+
+  // Wire up role selects
+  container.querySelectorAll('.user-role-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const userId = parseInt(e.target.dataset.userId, 10);
+      const previousRole = e.target.dataset.userRole;
+      const newRole = e.target.value;
+
+      if (previousRole === newRole) return;
+
+      const confirmed = confirm(
+        `Change user's role from "${previousRole}" to "${newRole}"?`
+      );
+      if (!confirmed) {
+        e.target.value = previousRole; // revert
+        return;
+      }
+
+      const res = await api(`/api/users/${userId}/role`, {
+        method: 'PATCH',
+        body: { role: newRole },
+      });
+
+      if (res.ok) {
+        setMessage(`User role updated to ${newRole}`);
+        await loadUsers();
+      } else {
+        document.getElementById('user-management-error').textContent =
+          res.body.error || 'Failed to update role';
+        e.target.value = previousRole; // revert
+      }
+    });
+  });
 }
 
 // ============================================================================

@@ -1,5 +1,5 @@
 // ============================================================================
-// src/controllers/moderation.controller.js — F05 & P23 & C1
+// src/controllers/moderation.controller.js — F05 & P23 & C1 & D3
 // ============================================================================
 
 const userModel = require('../models/user.model');
@@ -340,6 +340,35 @@ function listAuditLog(req, res, next) {
   }
 }
 
+// ===========================================================================
+// D3: User Management (Admin Only)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// D3: GET /api/users — admin only, list all users for role management
+// ---------------------------------------------------------------------------
+function listUsers(req, res, next) {
+  try {
+    const users = userModel.listAll();
+
+    // Don't leak password hashes. Add a derived "isSsoOnly" flag for the UI.
+    // Note: stmtListAll already excludes the password column, but explicit 
+    // sanitization here is a best practice for defense in depth.
+    const sanitized = users.map((u) => ({
+      id: u.id,
+      username: u.username,
+      email: u.email,
+      role: u.role,
+      created_at: u.created_at,
+      isSsoOnly: false, // Can be computed later if needed
+    }));
+
+    res.json(sanitized);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   changeUserRole,
   listQueue,
@@ -353,5 +382,6 @@ module.exports = {
   listRoleRequests,
   reviewRoleRequest,
   listMyRoleRequests,
-  listAuditLog,          // ← جديد (C1)
+  listAuditLog,
+  listUsers,          
 };

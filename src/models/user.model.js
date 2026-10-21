@@ -23,12 +23,20 @@ const stmtUpdateRole = db.prepare(
 );
 const stmtCountAll = db.prepare('SELECT COUNT(*) AS c FROM users');
 
+// D3: List all users for admin role management
+const stmtListAll = db.prepare(`
+  SELECT id, username, email, role, created_at
+  FROM users
+  ORDER BY created_at ASC
+`);
+
 module.exports = {
   findByEmail: (email) => stmtFindByEmail.get(email),
   findByUsername: (username) => stmtFindByUsername.get(username),
   findById: (id) => stmtFindById.get(id),
   findByIdWithPassword: (id) => stmtFindByIdWithPassword.get(id),
   countAll: () => stmtCountAll.get().c,
+  listAll: () => stmtListAll.all(),   // ← جديد (D3)
   create: (username, email, passwordHash, role = 'user') => {
     const info = stmtInsert.run(username, email, passwordHash, role);
     return { id: info.lastInsertRowid, username, email, role };
