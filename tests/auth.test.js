@@ -102,4 +102,19 @@ describe('Auth', () => {
     const me = await agent.get('/me');
     expect(me.status).toBe(401);
   });
+
+  // D5 Test: Must be at the end, and requires re-login since the previous test logged out
+  test('D5: /me includes identities array', async () => {
+    // Re-login — the 'logout clears session' test above intentionally
+    // logged us out.
+    await agent
+      .post('/login')
+      .set('x-csrf-token', csrf)
+      .send({ username: 'alice', password: 'longpassword' });
+
+    const res = await agent.get('/me');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('identities');
+    expect(Array.isArray(res.body.identities)).toBe(true);
+  });
 });
