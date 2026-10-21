@@ -114,6 +114,17 @@
       </div>
       <h4>Open Reports</h4>
       <div id="mod-reports">Loading...</div>
+
+      <!-- D2: Admin Categories Management -->
+      <div id="admin-categories-section" class="hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e67e22;">
+        <h4>Manage Categories (Admin)</h4>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <input type="text" id="new-category-name" placeholder="New category name (2-50 chars)" maxlength="50" style="flex: 1; margin: 0;" />
+          <button id="add-category-btn" type="button" style="flex: 0; padding: 10px 20px; margin: 0; white-space: nowrap;">Add Category</button>
+        </div>
+        <p id="category-error" class="message" style="margin: 5px 0;"></p>
+        <div id="categories-admin-list">Loading...</div>
+      </div>
     </div>
 
     <!-- Edit Post Modal -->

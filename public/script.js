@@ -107,6 +107,15 @@ async function checkSession() {
     } else {
       modSection.classList.add('hidden');
     }
+
+    // D2: Categories management is admin-only (moderator cannot manage)
+    const adminCatsSection = document.getElementById('admin-categories-section');
+    if (state.role === 'admin') {
+      adminCatsSection?.classList.remove('hidden');
+      loadAdminCategories();
+    } else {
+      adminCatsSection?.classList.add('hidden');
+    }
   } else {
     statusBox.textContent = 'You are browsing as a guest.';
     statusBox.style.background = '#f8d7da';
@@ -122,6 +131,9 @@ async function checkSession() {
     // إخفاء قسم الحسابات المرتبطة عند الخروج
     const connectedSection = document.getElementById('connected-accounts-section');
     if (connectedSection) connectedSection.classList.add('hidden');
+    
+    // D2: إخفاء قسم إدارة التصنيفات عند الخروج
+    document.getElementById('admin-categories-section')?.classList.add('hidden');
   }
 
   await loadCategoryCheckboxes();
@@ -681,6 +693,66 @@ function renderReports(reports) {
 }
 
 // ============================================================================
+// D2: Admin Categories Management
+// ============================================================================
+
+async function loadAdminCategories() {
+  const { ok, body } = await api('/api/categories');
+  if (!ok) return;
+
+  const container = document.getElementById('categories-admin-list');
+  if (!container) return;
+
+  container.innerHTML = '';
+  if (body.length === 0) {
+    container.innerHTML = '<p style="color:#7f8c8d; margin: 5px 0;">No categories yet.</p>';
+    return;
+  }
+
+  for (const cat of body) {
+    const div = document.createElement('div');
+    div.className = 'mod-card';
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.innerHTML = `
+      <div style="flex: 1;">
+        <strong>${escapeHtml(cat.name)}</strong>
+        <span style="color: #7f8c8d; font-size: 0.85em; margin-left: 8px;">(id: ${cat.id})</span>
+      </div>
+    `;
+    container.appendChild(div);
+  }
+}
+
+async function addCategory() {
+  const input = document.getElementById('new-category-name');
+  const errorEl = document.getElementById('category-error');
+  const name = input.value.trim();
+
+  errorEl.textContent = '';
+
+  if (name.length < 2 || name.length > 50) {
+    errorEl.textContent = 'Category name must be 2-50 characters.';
+    return;
+  }
+
+  const { ok, body } = await api('/api/admin/categories', {
+    method: 'POST',
+    body: { name },
+  });
+
+  if (ok) {
+    input.value = '';
+    await loadAdminCategories();
+    await loadCategoryCheckboxes();
+    await loadFilterCategories();
+    setMessage(`Category "${name}" added.`);
+  } else {
+    errorEl.textContent = body.error || 'Failed to add category.';
+  }
+}
+
+// ============================================================================
 // Advanced Features (F06)
 // ============================================================================
 async function loadNotifications() {
@@ -992,6 +1064,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('comment-edit-cancel-btn')?.addEventListener('click', () => {
     document.getElementById('comment-edit-modal').classList.add('hidden');
     editingComment = null;
+  });
+
+  // D2: Admin categories handlers
+  document.getElementById('add-category-btn')?.addEventListener('click', (e) =>
+    withLoading(e.currentTarget, addCategory));
+  document.getElementById('new-category-name')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addCategory();
+    }
   });
 
   document.getElementById('change-password-btn')?.addEventListener('click', () => {
