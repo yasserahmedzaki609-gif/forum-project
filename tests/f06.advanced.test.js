@@ -1,5 +1,5 @@
 require('./setup');
-const { resetDb, getCsrfFor, request } = require('./helpers');
+const { resetDb, getCsrfFor, request, approvePost } = require('./helpers'); // ← تمت إضافة approvePost
 
 let app;
 
@@ -36,6 +36,9 @@ describe('F06 — Advanced Features', () => {
       .send({ title: 'First Post', content: 'Hello', categoryIds: [1] });
     expect(res.status).toBe(201);
     postId = res.body.id;
+
+    // P24: approve so subsequent tests (edit/delete) find it in the feed
+    approvePost(postId);
 
     const act = await userA.get('/api/activity/me');
     expect(act.status).toBe(200);
@@ -148,6 +151,11 @@ describe('F06 — Advanced Features', () => {
     const postRes = await userA.post('/api/posts').set('x-csrf-token', tokenA)
       .send({ title: 'Dedup test post', content: 'Body', categoryIds: [1] });
     const dedupPostId = postRes.body.id;
+    
+    // Note: For this specific dedup test, the post doesn't strictly need to be 
+    // approved because interactions (likes) usually operate on the post ID directly 
+    // regardless of feed visibility, but approving it maintains consistency.
+    approvePost(dedupPostId);
 
     // User B: like → unlike → like
     await userB.post(`/api/posts/${dedupPostId}/like`).set('x-csrf-token', tokenB);

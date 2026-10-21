@@ -1,9 +1,11 @@
 // ============================================================================
 // tests/helpers.js — Shared test utilities
 // ----------------------------------------------------------------------------
-//   resetDb()      — fresh in-memory DB for this test file
-//   getCsrfFor()   — fetch a CSRF token + cookies via a safe GET
-//   request        — re-export supertest
+//   resetDb()         — fresh in-memory DB for this test file
+//   getCsrfFor()      — fetch a CSRF token + cookies via a safe GET
+//   approvePost()     — force-approve a post (for P24 legacy test compatibility)
+//   approveComment()  — force-approve a comment (for P24 legacy test compatibility)
+//   request           — re-export supertest
 // ============================================================================
 
 const request = require('supertest');
@@ -64,4 +66,27 @@ async function getCsrfFor(agentOrApp) {
   return { token, cookies };
 }
 
-module.exports = { resetDb, getCsrfFor, request };
+// ---------------------------------------------------------------------------
+// P24 helpers — approve pending content from tests that pre-date moderation
+// ---------------------------------------------------------------------------
+// Post P24, new posts/comments are created with status='pending' when F05 is
+// installed. Legacy tests that verify "the comment appears in the list" or
+// "the post shows in the feed" must first approve the content.
+// ---------------------------------------------------------------------------
+function approvePost(postId) {
+  const db = require('../src/database/db');
+  db.prepare("UPDATE posts SET status = 'approved' WHERE id = ?").run(postId);
+}
+
+function approveComment(commentId) {
+  const db = require('../src/database/db');
+  db.prepare("UPDATE comments SET status = 'approved' WHERE id = ?").run(commentId);
+}
+
+module.exports = { 
+  resetDb, 
+  getCsrfFor, 
+  request, 
+  approvePost,       // ← جديد (P24)
+  approveComment     // ← جديد (P24)
+};

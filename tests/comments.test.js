@@ -1,5 +1,5 @@
 require('./setup');
-const { resetDb, getCsrfFor, request } = require('./helpers');
+const { resetDb, getCsrfFor, request, approveComment } = require('./helpers'); // ← تمت إضافة approveComment
 
 let app, agent, csrf, postId;
 
@@ -51,6 +51,9 @@ describe('Comments', () => {
       .send({ content: 'Nice post!' });
     expect(res.status).toBe(201);
     expect(res.body.id).toBeGreaterThan(0);
+    
+    // P24: approve the comment so it appears in the list
+    approveComment(res.body.id);
   });
 
   test('comment appears in list', async () => {

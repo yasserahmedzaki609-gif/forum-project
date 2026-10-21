@@ -1,5 +1,5 @@
 require('./setup');
-const { resetDb, getCsrfFor, request } = require('./helpers');
+const { resetDb, getCsrfFor, request, approvePost } = require('./helpers'); // ← تمت إضافة approvePost
 
 let app, agent, csrf;
 
@@ -57,6 +57,9 @@ describe('Posts', () => {
       .send({ title: 'Hello', content: 'World', categoryIds: [1] });
     expect(res.status).toBe(201);
     expect(res.body.id).toBeGreaterThan(0);
+    
+    // P24: approve so subsequent tests see this post in the feed
+    approvePost(res.body.id);
   });
 
   test('rejects unknown category id', async () => {

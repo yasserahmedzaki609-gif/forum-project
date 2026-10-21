@@ -1,5 +1,5 @@
 require('./setup');
-const { resetDb, getCsrfFor, request } = require('./helpers');
+const { resetDb, getCsrfFor, request, approvePost } = require('./helpers'); // ← تمت إضافة approvePost
 
 let app, agent, csrf, postId;
 
@@ -18,6 +18,9 @@ beforeAll(async () => {
   const p = await agent.post('/api/posts').set('x-csrf-token', csrf)
     .send({ title: 'Single post test', content: 'Body', categoryIds: [1] });
   postId = p.body.id;
+  
+  // P24: approve so the post is visible to guests
+  approvePost(postId);
 });
 
 describe('GET /api/posts/:postId', () => {
