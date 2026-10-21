@@ -1,5 +1,5 @@
 // ============================================================================
-// src/routes/moderation.routes.js — F05 & P23 routes
+// src/routes/moderation.routes.js — F05 & P23 & C1 routes
 // ============================================================================
 
 const express = require('express');
@@ -128,6 +128,16 @@ router.patch(
   requireAdmin, // ⚠️ Security Note: Strictly Admin. Moderators cannot escalate privileges.
   validate(validateRoleRequestReview),
   moderationCtrl.reviewRoleRequest
+);
+
+// ===========================================================================
+// C1: Audit Trail (admin only)
+// ===========================================================================
+router.get(
+  '/api/moderation/audit-log',
+  requireAuth,
+  requireAdmin,
+  moderationCtrl.listAuditLog
 );
 
 module.exports = router;

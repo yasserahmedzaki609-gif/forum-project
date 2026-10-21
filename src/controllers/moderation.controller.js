@@ -1,5 +1,5 @@
 // ============================================================================
-// src/controllers/moderation.controller.js — F05 & P23
+// src/controllers/moderation.controller.js — F05 & P23 & C1
 // ============================================================================
 
 const userModel = require('../models/user.model');
@@ -7,13 +7,14 @@ const postModel = require('../models/post.model');
 const commentModel = require('../models/comment.model');
 const reportModel = require('../models/report.model');
 const categoryModel = require('../models/category.model');
-const roleRequestModel = require('../models/roleRequest.model'); // ← جديد (P23)
+const roleRequestModel = require('../models/roleRequest.model');
+const moderationLogModel = require('../models/moderationLog.model'); // ← C1: Audit trail model
 
 const { HttpError } = require('../middleware/errorHandler');
 const { 
   validateRoleRequest, 
   validateRoleRequestReview 
-} = require('../validators/moderation.validator'); // ← استيراد المحققين
+} = require('../validators/moderation.validator');
 
 // ---------------------------------------------------------------------------
 // PATCH /api/users/:id/role (Admin only)
@@ -26,12 +27,22 @@ function changeUserRole(req, res, next) {
     const user = userModel.findById(userId);
     if (!user) throw new HttpError(404, 'User not found');
 
-    // Admin cannot demote themselves to avoid locking out the only admin
     if (user.id === req.user.id && req.body.role !== 'admin') {
       throw new HttpError(400, 'You cannot demote yourself');
     }
 
+    const previousRole = user.role;
     userModel.updateRole(userId, req.body.role);
+
+    // C1: audit trail
+    moderationLogModel.log(
+      req.user.id,
+      'user.role_change',
+      'user',
+      userId,
+      { previous_role: previousRole, new_role: req.body.role }
+    );
+
     res.json({ ok: true, id: userId, role: req.body.role });
   } catch (err) {
     next(err);
@@ -60,9 +71,21 @@ function changePostStatus(req, res, next) {
     const postId = parseInt(req.params.id, 10);
     if (!Number.isInteger(postId) || postId <= 0) throw new HttpError(400, 'Invalid post id');
 
-    if (!postModel.findById(postId)) throw new HttpError(404, 'Post not found');
+    const post = postModel.findById(postId);
+    if (!post) throw new HttpError(404, 'Post not found');
 
+    const previousStatus = post.status;
     postModel.updateStatus(postId, req.body.status);
+
+    // C1: audit trail
+    moderationLogModel.log(
+      req.user.id,
+      'post.status_change',
+      'post',
+      postId,
+      { previous_status: previousStatus, new_status: req.body.status }
+    );
+
     res.json({ ok: true, id: postId, status: req.body.status });
   } catch (err) {
     next(err);
@@ -77,9 +100,21 @@ function changeCommentStatus(req, res, next) {
     const commentId = parseInt(req.params.id, 10);
     if (!Number.isInteger(commentId) || commentId <= 0) throw new HttpError(400, 'Invalid comment id');
 
-    if (!commentModel.findById(commentId)) throw new HttpError(404, 'Comment not found');
+    const comment = commentModel.findById(commentId);
+    if (!comment) throw new HttpError(404, 'Comment not found');
 
+    const previousStatus = comment.status;
     commentModel.updateStatus(commentId, req.body.status);
+
+    // C1: audit trail
+    moderationLogModel.log(
+      req.user.id,
+      'comment.status_change',
+      'comment',
+      commentId,
+      { previous_status: previousStatus, new_status: req.body.status }
+    );
+
     res.json({ ok: true, id: commentId, status: req.body.status });
   } catch (err) {
     next(err);
@@ -93,7 +128,6 @@ function createReport(req, res, next) {
   try {
     const { targetType, targetId, reason } = req.body;
 
-    // Verify target exists
     if (targetType === 'post' && !postModel.findById(targetId)) {
       throw new HttpError(404, 'Post not found');
     }
@@ -127,9 +161,21 @@ function updateReport(req, res, next) {
     const reportId = parseInt(req.params.id, 10);
     if (!Number.isInteger(reportId) || reportId <= 0) throw new HttpError(400, 'Invalid report id');
 
-    if (!reportModel.findById(reportId)) throw new HttpError(404, 'Report not found');
+    const report = reportModel.findById(reportId);
+    if (!report) throw new HttpError(404, 'Report not found');
 
+    const previousStatus = report.status;
     reportModel.updateStatus(reportId, req.body.status);
+
+    // C1: audit trail
+    moderationLogModel.log(
+      req.user.id,
+      'report.status_change',
+      'report',
+      reportId,
+      { previous_status: previousStatus, new_status: req.body.status }
+    );
+
     res.json({ ok: true, id: reportId, status: req.body.status });
   } catch (err) {
     next(err);
@@ -142,7 +188,6 @@ function updateReport(req, res, next) {
 function createCategory(req, res, next) {
   try {
     const name = req.body.name.trim();
-
     if (categoryModel.findByName(name)) {
       throw new HttpError(409, 'Category already exists');
     }
@@ -163,23 +208,18 @@ function createCategory(req, res, next) {
 // ---------------------------------------------------------------------------
 function createRoleRequest(req, res, next) {
   try {
-    // 1. Validate input strictly
     validateRoleRequest(req);
-
     const { requestedRole, reason } = req.body;
 
-    // 2. One pending request per user — prevents spam.
     const existing = roleRequestModel.findPendingByUser(req.user.id);
     if (existing) {
       throw new HttpError(409, 'You already have a pending role request');
     }
 
-    // 3. Users cannot request a role they already have.
     if (req.user.role === requestedRole) {
       throw new HttpError(400, `You are already a ${requestedRole}`);
     }
 
-    // 4. Policy: Regular users cannot request 'admin' directly.
     if (requestedRole === 'admin' && req.user.role !== 'moderator') {
       throw new HttpError(403, 'Only moderators can request admin promotion');
     }
@@ -207,7 +247,6 @@ function listRoleRequests(req, res, next) {
 // ---------------------------------------------------------------------------
 function reviewRoleRequest(req, res, next) {
   try {
-    // 1. Validate input strictly
     validateRoleRequestReview(req);
 
     const id = parseInt(req.params.id, 10);
@@ -217,7 +256,6 @@ function reviewRoleRequest(req, res, next) {
 
     const { action } = req.body;
 
-    // 2. Execute review
     let result;
     if (action === 'approve') {
       result = roleRequestModel.approve(id, req.user.id);
@@ -225,7 +263,6 @@ function reviewRoleRequest(req, res, next) {
       result = roleRequestModel.reject(id, req.user.id);
     }
 
-    // 3. Handle business logic errors gracefully
     if (!result.ok) {
       if (result.reason === 'not_found') {
         throw new HttpError(404, 'Role request not found');
@@ -235,6 +272,15 @@ function reviewRoleRequest(req, res, next) {
       }
       throw new HttpError(500, 'Failed to review role request');
     }
+
+    // C1: audit trail
+    moderationLogModel.log(
+      req.user.id,
+      `role_request.${action}`,
+      'role_request',
+      id,
+      result.userId ? { user_id: result.userId, new_role: result.role } : {}
+    );
 
     res.json({
       ok: true,
@@ -257,6 +303,43 @@ function listMyRoleRequests(req, res, next) {
   }
 }
 
+// ===========================================================================
+// C1: Audit Log Management
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// GET /api/moderation/audit-log — admin only
+// ---------------------------------------------------------------------------
+function listAuditLog(req, res, next) {
+  try {
+    const limit = Math.min(
+      parseInt(req.query.limit, 10) || 100,
+      500
+    );
+
+    const { target_type, target_id, actor_id } = req.query;
+
+    let rows;
+    if (target_type && target_id) {
+      rows = moderationLogModel.listByTarget(
+        target_type,
+        parseInt(target_id, 10)
+      );
+    } else if (actor_id) {
+      rows = moderationLogModel.listByActor(
+        parseInt(actor_id, 10),
+        limit
+      );
+    } else {
+      rows = moderationLogModel.listRecent(limit);
+    }
+
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   changeUserRole,
   listQueue,
@@ -266,8 +349,9 @@ module.exports = {
   listReports,
   updateReport,
   createCategory,
-  createRoleRequest,      
-  listRoleRequests,       
-  reviewRoleRequest,      
-  listMyRoleRequests,     
+  createRoleRequest,
+  listRoleRequests,
+  reviewRoleRequest,
+  listMyRoleRequests,
+  listAuditLog,          // ← جديد (C1)
 };

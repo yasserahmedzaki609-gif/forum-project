@@ -359,6 +359,44 @@ const migrations = [
         ON role_requests(user_id);
     `),
   },
+
+  // -------------------------------------------------------------------------
+  // 015 — Moderation audit trail (C1)
+  // -------------------------------------------------------------------------
+  // Every moderation action (status change, role change, request review,
+  // report resolution) is recorded here. Required for accountability:
+  // "who approved this post?", "when did we ban this user?", etc.
+  //
+  // metadata is a free-form JSON string for action-specific details
+  // (e.g. {"previous_status":"pending","new_status":"approved"}).
+  //
+  // ⚠️ Architectural Note: actor_id is INTEGER (nullable) to allow 
+  // ON DELETE SET NULL. If an admin account is deleted, the log record 
+  // remains for audit purposes with actor_id = NULL. This is the correct 
+  // design decision for immutability and prevents constraint violations.
+  // -------------------------------------------------------------------------
+  {
+    name: '015_moderation_logs',
+    up: () => db.exec(`
+      CREATE TABLE IF NOT EXISTS moderation_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor_id INTEGER,
+        action TEXT NOT NULL,
+        target_type TEXT NOT NULL
+          CHECK(target_type IN ('post', 'comment', 'user', 'report', 'role_request')),
+        target_id INTEGER NOT NULL,
+        metadata TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_moderation_logs_actor
+        ON moderation_logs(actor_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_moderation_logs_target
+        ON moderation_logs(target_type, target_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_moderation_logs_action
+        ON moderation_logs(action, created_at DESC);
+    `),
+  },
 ];
 
 // ---------------------------------------------------------------------------
