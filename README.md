@@ -5,7 +5,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![SQLite](https://img.shields.io/badge/sqlite-3%20%2B%20SQLCipher-blue)](https://www.zetetic.net/sqlcipher/)
 [![Express](https://img.shields.io/badge/express-5-lightgrey)](https://expressjs.com/)
-[![Tests](https://img.shields.io/badge/tests-114%2F114%20passing-success)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-161%2F161%20passing-success)](#running-tests)
 [![License](https://img.shields.io/badge/license-ISC-lightgrey)](./LICENSE)
 
 ---
@@ -117,7 +117,7 @@ forum-project/
 │   ├── script.js               # + media/password/report logic
 │   ├── style.css
 │   └── favicon.svg
-├── tests/                      # 18 suites + f04.db-encryption = 18 suites (114 tests)
+├── tests/                      # 23 suites, 161 tests (Jest + Supertest)
 ├── docs/
 ├── scripts/
 │   ├── backup-db.js            # P21
@@ -230,7 +230,7 @@ head -c 16 data/forum.db | od -c
 ## Running Tests
 
 ```bash
-npm test             # 18 suites, 114 tests (includes P21 + Week-1 fixes)
+npm test             # 23 suites, 161 tests (includes P21 + Week-1 + Week-2 fixes)
 npm test -- f04      # specific feature
 npm test -- db-encryption  # P21 only
 ```
@@ -264,4 +264,15 @@ npm test -- db-encryption  # P21 only
 | **F04** | Security & Sessions | ✅ Complete |
 | **F05** | Moderation | ✅ Complete |
 | **F06** | Advanced Features | ✅ Complete |
-| **Total** | **Full Stack Community + P21 + Week-1 fixes** | **✅ 114/114 Tests** |
+| **Total** | **Full Stack Community + P21 + Week-1 + Week-2 fixes** | **✅ 161/161 Tests** |
+
+---
+
+## Week-2 Features (v1.3.0)
+
+- **P23 — Role Requests**: complete workflow for requesting/reviewing role promotions.
+- **P24 — Conditional Moderation Adapter**: content starts `pending` when moderation is installed, `approved` otherwise.
+- **P25 — Transactional Events**: comment/post/reaction writes are atomic.
+- **P26 — Index Observatory**: `npm run db:observatory` analyzes query plans.
+- **C1 — Audit Trail**: every moderation action is logged (append-only).
+- **C3 — Identities Management**: users can list and unlink SSO providers with session revocation.

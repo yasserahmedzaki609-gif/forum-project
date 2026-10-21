@@ -24,7 +24,7 @@ Academy Roadmap Final Project
 - **F06**: Advanced Features (Editing, Notifications, Activity)
 - **P21**: Live Database Encryption (SQLCipher Bonus)
 
-**Result**: 18 Test Suites | 114 Tests | 0 Vulnerabilities
+**Result**: 23 Test Suites | 161 Tests | 0 Vulnerabilities
 
 ---
 
@@ -101,7 +101,7 @@ Uploading files is dangerous. We built a 4-stage pipeline:
 
 ## Quality Assurance
 
-- **18 Test Suites** / **114 Tests** (Jest + Supertest).
+- **23 Test Suites** / **161 Tests** (Jest + Supertest).
 - **In-Memory DB**: Tests run isolated in `:memory:` SQLite.
 - **Encrypted DB**: Tests use a temp file with SQLCipher (P21).
 - **Security Check**: `npm audit` returns 0 vulnerabilities.

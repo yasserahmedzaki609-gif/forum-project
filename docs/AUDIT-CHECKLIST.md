@@ -14,7 +14,8 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 | **F06** | Advanced Features | ✅ Complete | 9 |
 | **P21** | **DB Encryption (Bonus)** | **✅ Complete** | **6** |
 | **Week-1 fixes** | B1-B5, B7-B8, C2, C7, G1, G1+, H1 | ✅ Complete | — |
-| **Total** | **Full Track + Bonus + Week-1 fixes** | **✅ 100%** | **114/114** |
+| **Week-2 fixes** | P23, P24, P25, P26, C1, C3 | ✅ Complete | 47 |
+| **Total** | **Full Track + Bonus + Week-1 + Week-2** | **✅ 100%** | **161/161** |
 
 ---
 
@@ -32,7 +33,7 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 | P08 | Feed Filters & Pagination | ✅ | `post.model.js::list()` |
 | P09 | Registration & bcrypt | ✅ | `auth.controller.js`, `password.js` |
 | P10 | Sessions + Route Guards + CSRF | ✅ | `session.model.js`, `csrf.js` |
-| P11 | Failure Handling + Tests | ✅ | `errorHandler.js`, 114 tests |
+| P11 | Failure Handling + Tests | ✅ | `errorHandler.js`, 161 tests |
 | P12 | Docker + Volumes | ✅ | `Dockerfile`, `docker-compose.yml` |
 | P13 | External API Client | ✅ | `providers/` |
 | P14 | OAuth + PKCE | ✅ | `pkce.js`, `oauthState.model.js` |
@@ -90,7 +91,7 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 | # | Requirement | Status | Implementation |
 | --- | --- | --- | --- |
 | 33 | Layered architecture | ✅ | Controllers, Models, Middleware, Validators |
-| 34 | Unit/Integration Tests | ✅ | 18 suites, 114 tests (Jest + Supertest) |
+| 34 | Unit/Integration Tests | ✅ | 23 suites, 161 tests (Jest + Supertest) |
 | 35 | Zero Vulnerabilities | ✅ | `npm audit` returns 0 vulnerabilities |
 | 36 | Docker Multi-stage | ✅ | Minimized image, no build tools in runtime |
 
@@ -127,3 +128,19 @@ Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
 | 12 | **H1** | `GET /health` endpoint + Docker healthcheck | `src/app.js`, `docker-compose.yml` | `tests/security.test.js` (H1) |
 
 **New tests added in Week 1:** 7 (B1×3, B2, B3, B4, C2, H1).
+
+---
+
+## Week-2 Post-Launch Fixes (v1.3.0)
+
+| # | ID | Fix | Files | Test |
+| --- | --- | --- | --- | --- |
+| 1 | **P23** | Role Requests (migration 014, model, 4 endpoints, validator) | `roleRequest.model.js`, `moderation.controller.js` | `f05.role-requests.test.js` (11) |
+| 2 | **P24** | Conditional Moderation Adapter (pending by default) | `moderationMode.js`, `post.service.js`, `comment.service.js` | `f06.moderation-mode.test.js` (11) |
+| 3 | **P25** | Atomic transactions for comment/post/reaction | `comment.service.js`, `post.service.js` | `f06.transactions.test.js` (6) |
+| 4 | **P26** | Index Observatory (`npm run db:observatory`) | `scripts/index-observatory.js` | manual |
+| 5 | **C1** | Append-only audit trail (migration 015) | `moderationLog.model.js` | `f05.audit-log.test.js` (10) |
+| 6 | **C3** | Identities list + unlink with revocation | `identities.controller.js`, `identity.model.js` | `c3.identities.test.js` (9) |
+
+**New tests added in Week 2:** 47 (P23×11, P24×11, P25×6, C1×10, C3×9).
+**Cumulative:** 114 → 161.

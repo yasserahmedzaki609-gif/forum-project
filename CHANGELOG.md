@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] — Week-2 Features
+
+### Added
+
+- **P23 — Role Requests**: complete workflow (migration 014). Users request promotion, moderators see the queue, admins approve/reject. Safety rules: one pending request per user; only admins can review; regular users cannot request `admin` directly.
+- **P24 — Conditional Moderation Adapter**: new content starts as `pending` when F05 is installed, `approved` otherwise. Approval Queue fills automatically.
+- **P25 — Transactional Events**: comment/post/reaction writes wrapped in `db.transaction` — no partial state.
+- **P26 — Index Observatory**: `npm run db:observatory` analyzes 16 critical queries.
+- **C1 — Audit Trail**: append-only `moderation_logs` (migration 015). Admin-only `GET /api/moderation/audit-log`.
+- **C3 — Identities Management**: users can list/unlink SSO providers. Revokes other sessions on unlink. UI: "Connected Accounts".
+
+### Tests
+
+- Added 47 tests: P23×11, P24×11, P25×6, C1×10, C3×9.
+- Cumulative: 114 (Week 1) → 161 (Week 2).
+
+---
+
 ## [1.2.0] — Week-1 Security & Correctness Fixes
 
 ### Security
@@ -65,3 +83,4 @@ All notable changes to this project will be documented in this file.
 
 - Full implementation of Anas Roadmap: P01–P26 + F01–F06 + P21 Bonus.
 - 107 tests passing, 0 vulnerabilities.
+-
