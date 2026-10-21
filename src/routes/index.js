@@ -1,5 +1,5 @@
 // ============================================================================
-// src/routes/index.js — All routes (F01–F06 + C3)
+// src/routes/index.js — All routes (F01–F06 + C3 + C4)
 // ============================================================================
 
 const express = require('express');
@@ -38,6 +38,9 @@ router.post('/login', loginLimiter, validate(validateLogin), authCtrl.login);
 router.post('/logout', requireAuth, authCtrl.logout);
 router.get('/me', authCtrl.me);
 router.post('/api/users/me/password', requireAuth, authLimiter, validate(validateChangePassword), authCtrl.changePassword);
+
+// C4: Account deletion (requires password or username confirmation)
+router.delete('/api/users/me', requireAuth, authCtrl.deleteAccount);
 
 // ===========================================================================
 // Categories
@@ -103,7 +106,7 @@ const mediaRoutes = require('./media.routes');
 router.use(mediaRoutes);
 
 // ===========================================================================
-// Moderation (F05 & P23 & C1)
+// Moderation (F05 & P23 & C1 & D3)
 // ===========================================================================
 const moderationRoutes = require('./moderation.routes');
 router.use(moderationRoutes);

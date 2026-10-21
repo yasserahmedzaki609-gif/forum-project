@@ -1,5 +1,5 @@
 // ============================================================================
-// src/models/user.model.js — User CRUD (F05: with roles)
+// src/models/user.model.js — User CRUD (F05: with roles) + C4
 // ============================================================================
 
 const db = require('../database/db');
@@ -21,6 +21,12 @@ const stmtUpdatePassword = db.prepare(
 const stmtUpdateRole = db.prepare(
   'UPDATE users SET role = ? WHERE id = ?'
 );
+
+// C4: Delete user — cascades handle related rows (sessions, posts, comments,
+// reactions, media, identities, reports). moderation_logs.actor_id becomes
+// NULL (preserved for audit), role_requests.reviewed_by becomes NULL.
+const stmtDeleteById = db.prepare('DELETE FROM users WHERE id = ?');
+
 const stmtCountAll = db.prepare('SELECT COUNT(*) AS c FROM users');
 
 // D3: List all users for admin role management
@@ -36,7 +42,8 @@ module.exports = {
   findById: (id) => stmtFindById.get(id),
   findByIdWithPassword: (id) => stmtFindByIdWithPassword.get(id),
   countAll: () => stmtCountAll.get().c,
-  listAll: () => stmtListAll.all(),   // ← جديد (D3)
+  deleteById: (id) => stmtDeleteById.run(id).changes > 0, // ← C4: جديد
+  listAll: () => stmtListAll.all(),                       // ← D3: موجود مسبقاً
   create: (username, email, passwordHash, role = 'user') => {
     const info = stmtInsert.run(username, email, passwordHash, role);
     return { id: info.lastInsertRowid, username, email, role };

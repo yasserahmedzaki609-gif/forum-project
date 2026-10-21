@@ -1,5 +1,5 @@
 // ============================================================================
-// src/controllers/auth.controller.js — F04 hardened auth + F05 roles + D5
+// src/controllers/auth.controller.js — F04 hardened auth + F05 roles + D5 + C4
 // ============================================================================
 
 const userModel = require('../models/user.model');
@@ -9,6 +9,8 @@ const { hashPassword, verifyPassword } = require('../utils/password');
 const { fingerprint } = require('../utils/hash');
 const { HttpError } = require('../middleware/errorHandler');
 const config = require('../config');
+const db = require('../database/db'); // ← C4: Added for admin count check
+const logger = require('../utils/logger'); // ← C4: Added for audit logging
 
 function uaHashFrom(req) {
   if (!config.session.bindToUserAgent) return null;
@@ -143,4 +145,76 @@ async function changePassword(req, res, next) {
   }
 }
 
-module.exports = { register, login, logout, me, changePassword };
+// ---------------------------------------------------------------------------
+// C4: DELETE /api/users/me — permanent account deletion
+// ---------------------------------------------------------------------------
+// Safety rules:
+//   - Password users: must supply currentPassword
+//   - SSO-only users (unusable password): must type their exact username
+//   - The only admin cannot delete themselves (would lock the forum)
+//   - CSRF protected (all mutations require token)
+//
+// Data:
+//   - ON DELETE CASCADE removes: sessions, posts, comments, reactions,
+//     media, identities, reports, role_requests (as user_id)
+//   - moderation_logs.actor_id → SET NULL (preserved for audit)
+//   - role_requests.reviewed_by → SET NULL (preserved for audit)
+// ---------------------------------------------------------------------------
+async function deleteAccount(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { password, confirmation } = req.body || {};
+
+    const user = userModel.findByIdWithPassword(userId);
+    if (!user) throw new HttpError(404, 'User not found');
+
+    const hasPassword = user.password && !user.password.startsWith('!');
+
+    // Authentication check
+    if (hasPassword) {
+      if (!password || typeof password !== 'string') {
+        throw new HttpError(400, 'Password required to delete account');
+      }
+      const ok = await verifyPassword(password, user.password);
+      if (!ok) throw new HttpError(401, 'Incorrect password');
+    } else {
+      // SSO-only: require typing the exact username
+      if (!confirmation || confirmation !== user.username) {
+        throw new HttpError(400, `Type your username "${user.username}" to confirm`);
+      }
+    }
+
+    // Last admin protection
+    if (user.role === 'admin') {
+      const adminCount = db
+        .prepare("SELECT COUNT(*) AS c FROM users WHERE role = 'admin'")
+        .get().c;
+      if (adminCount <= 1) {
+        throw new HttpError(
+          409,
+          'Cannot delete the only admin account. Promote another user first.'
+        );
+      }
+    }
+
+    // Delete
+    const deleted = userModel.deleteById(userId);
+    if (!deleted) throw new HttpError(500, 'Failed to delete account');
+
+    req.session = null;
+    logger.info(`Account deleted: user_id=${userId} username=${user.username}`);
+
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  register,
+  login,
+  logout,
+  me,
+  changePassword,
+  deleteAccount, // ← C4: جديد
+};
