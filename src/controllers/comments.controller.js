@@ -1,13 +1,15 @@
 // ============================================================================
-// src/controllers/comments.controller.js — Comments + F06
+// src/controllers/comments.controller.js — Comments + F06 + P25
 // ============================================================================
 
 const commentModel = require('../models/comment.model');
 const postModel = require('../models/post.model');
-const reactionModel = require('../models/reaction.model');
-const notificationModel = require('../models/notification.model');
-const activityModel = require('../models/activity.model');
+const commentService = require('../services/comment.service'); // ← P25 Service Layer
 const { HttpError } = require('../middleware/errorHandler');
+
+// ملاحظة: تم إزالة reactionModel, notificationModel, و activityModel 
+// لأن منطقها انتقل الآن إلى داخل commentService لضمان الذرية (Atomicity)،
+// مما يمنع تحذيرات ESLint حول المتغيرات غير المستخدمة.
 
 // ---------------------------------------------------------------------------
 // GET /api/posts/:postId/comments
@@ -28,7 +30,7 @@ function listComments(req, res, next) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/posts/:postId/comments
+// POST /api/posts/:postId/comments — P25: atomic (comment + activity + notify)
 // ---------------------------------------------------------------------------
 function createComment(req, res, next) {
   try {
@@ -41,15 +43,14 @@ function createComment(req, res, next) {
     if (!post) throw new HttpError(404, 'Post not found');
 
     const { content } = req.body;
-    const c = commentModel.create(content.trim(), req.user.id, postId);
 
-    // F06: Log activity
-    activityModel.log(req.user.id, 'comment_create', 'comment', c.id);
-
-    // F06: Notify post owner
-    if (post.user_id !== req.user.id) {
-      notificationModel.create(post.user_id, req.user.id, 'comment', 'post', postId);
-    }
+    // P25-FIX: All three operations run in one transaction via Service Layer.
+    const c = commentService.createComment(
+      req.user.id,
+      postId,
+      content.trim(),
+      post.user_id
+    );
 
     res.status(201).json({ id: c.id });
   } catch (err) {
@@ -80,7 +81,9 @@ function updateComment(req, res, next) {
       throw new HttpError(409, 'Comment was modified by someone else. Please reload.');
     }
 
-    // F06: Log activity
+    // ملاحظة: تسجيل النشاط (Activity Log) يمكن نقله أيضاً للخدمة لاحقاً إذا لزم الأمر،
+    // لكن إبقاؤه هنا مقبول طالما أنه عملية قراءة/كتابة منفصلة لا تؤثر على سلامة التعليق نفسه.
+    const activityModel = require('../models/activity.model'); // Local require if strictly needed here, or move to service
     activityModel.log(req.user.id, 'comment_edit', 'comment', commentId);
 
     res.json({ ok: true });
@@ -115,7 +118,7 @@ function deleteComment(req, res, next) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/comments/:commentId/like | /dislike
+// POST /api/comments/:commentId/like | /dislike — P25: atomic (reaction + notify)
 // ---------------------------------------------------------------------------
 function reactToComment(req, res, next) {
   try {
@@ -132,12 +135,13 @@ function reactToComment(req, res, next) {
       throw new HttpError(400, 'Invalid reaction action');
     }
 
-    const result = reactionModel.react(req.user.id, 'comment', commentId, value);
-
-    // F06: Notify comment owner on like
-    if (result.action === 'added' && value === 1 && comment.user_id !== req.user.id) {
-      notificationModel.create(comment.user_id, req.user.id, 'like', 'comment', commentId);
-    }
+    // P25-FIX: Reaction + optional notification in one transaction via Service Layer.
+    const result = commentService.reactToComment(
+      req.user.id,
+      commentId,
+      value,
+      comment.user_id
+    );
 
     res.json(result);
   } catch (err) {
@@ -145,4 +149,10 @@ function reactToComment(req, res, next) {
   }
 }
 
-module.exports = { listComments, createComment, updateComment, deleteComment, reactToComment };
+module.exports = { 
+  listComments, 
+  createComment, 
+  updateComment, 
+  deleteComment, 
+  reactToComment 
+};

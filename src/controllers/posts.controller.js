@@ -1,14 +1,16 @@
 // ============================================================================
-// src/controllers/posts.controller.js — Posts + F06 (edit, delete, notifications)
+// src/controllers/posts.controller.js — Posts + F06 (edit, delete, notifications) + P25
 // ============================================================================
 
 const postModel = require('../models/post.model');
 const categoryModel = require('../models/category.model');
-const reactionModel = require('../models/reaction.model');
-const notificationModel = require('../models/notification.model');
-const activityModel = require('../models/activity.model');
+const postService = require('../services/post.service'); // ← جديد (P25 Service Layer)
+const activityModel = require('../models/activity.model'); // ← لا يزال مستخدماً في updatePost
 const { HttpError } = require('../middleware/errorHandler');
 const config = require('../config');
+
+// ملاحظة: تم إزالة reactionModel و notificationModel لأن منطقهما انتقل الآن 
+// إلى داخل postService لضمان الذرية (Atomicity)، مما يمنع تحذيرات ESLint.
 
 // ---------------------------------------------------------------------------
 // GET /api/posts
@@ -85,7 +87,7 @@ function getPost(req, res, next) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/posts
+// POST /api/posts — P25: atomic (post + categories + activity)
 // ---------------------------------------------------------------------------
 function createPost(req, res, next) {
   try {
@@ -99,15 +101,12 @@ function createPost(req, res, next) {
       }
     }
 
-    const postId = postModel.create(
+    const postId = postService.createPost(
       req.user.id,
       title.trim(),
       content.trim(),
       categoryIds
     );
-
-    // F06: Log activity
-    activityModel.log(req.user.id, 'post_create', 'post', postId);
 
     res.status(201).json({ id: postId });
   } catch (err) {
@@ -146,7 +145,7 @@ function updatePost(req, res, next) {
       throw new HttpError(409, 'Post was modified by someone else. Please reload.');
     }
 
-    // F06: Log activity
+    // F06: Log activity (Note: Ideally, this should also move to postService for full atomicity)
     activityModel.log(req.user.id, 'post_edit', 'post', postId);
 
     res.json({ ok: true });
@@ -181,7 +180,7 @@ function deletePost(req, res, next) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/posts/:postId/like | /dislike
+// POST /api/posts/:postId/like | /dislike — P25: atomic (reaction + notify)
 // ---------------------------------------------------------------------------
 function reactToPost(req, res, next) {
   try {
@@ -198,12 +197,12 @@ function reactToPost(req, res, next) {
       throw new HttpError(400, 'Invalid reaction action');
     }
 
-    const result = reactionModel.react(req.user.id, 'post', postId, value);
-
-    // F06: Notify post owner on like (not on dislike, not on self-like)
-    if (result.action === 'added' && value === 1 && post.user_id !== req.user.id) {
-      notificationModel.create(post.user_id, req.user.id, 'like', 'post', postId);
-    }
+    const result = postService.reactToPost(
+      req.user.id,
+      postId,
+      value,
+      post.user_id
+    );
 
     res.json(result);
   } catch (err) {
