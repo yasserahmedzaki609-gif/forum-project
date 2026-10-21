@@ -58,7 +58,14 @@
         <button id="change-password-btn" type="button" style="background: #f39c12; margin: 0; flex: 1; width: auto;">Change Password</button>
       </div>
 
-      <div id="create-post-section">
+      <!-- C3: Connected Accounts -->
+      <div id="connected-accounts-section" class="hidden" style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 6px;">
+        <h3 style="margin-top: 0; font-size: 1.1em; color: #333;">Connected Accounts</h3>
+        <p id="connected-accounts-hint" class="sso-hint hidden" style="margin-bottom: 10px; font-size: 0.9em;"></p>
+        <div id="connected-accounts-list" style="display: flex; flex-direction: column; gap: 8px;">Loading...</div>
+      </div>
+
+      <div id="create-post-section" style="margin-top: 20px;">
         <h3>Create New Post</h3>
         <input type="text" id="post-title" placeholder="Post Title" maxlength="150" />
         <textarea id="post-content" placeholder="Post Content" rows="4" maxlength="5000"></textarea>

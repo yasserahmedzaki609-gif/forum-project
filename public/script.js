@@ -95,8 +95,11 @@ async function checkSession() {
 
     notifBell.classList.remove('hidden');
     activitySection.classList.remove('hidden');
+    
+    // تحميل البيانات المتعلقة بالمستخدم بالتسلسل
     loadNotifications();
     loadActivity();
+    loadConnectedAccounts(); // ← C3: تحميل الحسابات المرتبطة فوراً
 
     if (state.role === 'admin' || state.role === 'moderator') {
       modSection.classList.remove('hidden');
@@ -115,6 +118,10 @@ async function checkSession() {
     notifDropdown.classList.add('hidden');
     activitySection.classList.add('hidden');
     document.querySelectorAll('.user-only').forEach((el) => el.classList.add('hidden'));
+    
+    // إخفاء قسم الحسابات المرتبطة عند الخروج
+    const connectedSection = document.getElementById('connected-accounts-section');
+    if (connectedSection) connectedSection.classList.add('hidden');
   }
 
   await loadCategoryCheckboxes();
@@ -827,7 +834,68 @@ async function loadActivity() {
   });
 }
 
-// --- F06: Wire up listeners ---
+// ============================================================================
+// C3: Identity Management
+// ============================================================================
+async function loadConnectedAccounts() {
+  const { ok, body } = await api('/api/users/me/identities');
+  if (!ok) return;
+
+  const section = document.getElementById('connected-accounts-section');
+  const list = document.getElementById('connected-accounts-list');
+  const hint = document.getElementById('connected-accounts-hint');
+  if (!section || !list) return;
+
+  section.classList.remove('hidden');
+  list.innerHTML = '';
+
+  if (body.identities.length === 0) {
+    list.innerHTML = '<p style="color:#7f8c8d; margin: 5px 0;">No SSO providers linked.</p>';
+  } else {
+    for (const identity of body.identities) {
+      const div = document.createElement('div');
+      div.className = 'mod-card';
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+      div.style.justifyContent = 'space-between';
+      div.innerHTML = `
+        <div style="flex: 1;">
+          <strong>${escapeHtml(identity.provider)}</strong>
+          <span style="color:#7f8c8d; font-size: 0.9em; margin-left: 8px;">— ${escapeHtml(identity.email || 'no email')}</span>
+        </div>
+        ${body.canUnlink ? `<button type="button" class="btn-reject" data-unlink="${escapeHtml(identity.provider)}" style="width: auto; padding: 5px 12px; font-size: 12px;">Unlink</button>` : ''}
+      `;
+      const btn = div.querySelector('[data-unlink]');
+      if (btn) {
+        btn.addEventListener('click', () => unlinkIdentity(identity.provider));
+      }
+      list.appendChild(div);
+    }
+  }
+
+  if (!body.canUnlink) {
+    hint.textContent = 'You have no password set, so you cannot unlink your only provider. Set a password first.';
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
+}
+
+async function unlinkIdentity(provider) {
+  if (!confirm(`Unlink ${provider} from your account? You will need to use another login method.`)) return;
+  const { ok, body } = await api(`/api/users/me/identities/${provider}`, { method: 'DELETE' });
+  if (ok) {
+    setMessage(`${provider} unlinked successfully.`);
+    await loadConnectedAccounts();
+    await checkSession(); // تحديث حالة الجلسة لضمان الاتساق
+  } else {
+    setMessage(body.error || 'Failed to unlink');
+  }
+}
+
+// ============================================================================
+// Wire up listeners
+// ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('notif-bell')?.addEventListener('click', (e) => {
     if (e.target.closest('#notif-dropdown')) return;
