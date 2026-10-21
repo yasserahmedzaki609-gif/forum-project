@@ -1,5 +1,5 @@
 // ============================================================================
-// src/services/comment.service.js — P25 Transactional comment operations
+// src/services/comment.service.js — P25 Transactional comment operations + P24
 // ----------------------------------------------------------------------------
 // Wraps comment creation + activity log + notification in a single SQLite
 // transaction. If any step fails (e.g. notification insert), the whole
@@ -16,14 +16,18 @@ const commentModel = require('../models/comment.model');
 const reactionModel = require('../models/reaction.model');
 const activityModel = require('../models/activity.model');
 const notificationModel = require('../models/notification.model');
+const { initialCommentStatus } = require('../middleware/moderationMode'); // ← P24: Moderation-aware status
 
 // ---------------------------------------------------------------------------
-// P25: Atomic createComment
+// P25 + P24: Atomic createComment with moderation-aware initial status
 // ---------------------------------------------------------------------------
 const createCommentTx = db.transaction(
   (userId, postId, content, postOwnerId) => {
-    // 1. Insert comment
-    const c = commentModel.create(content, userId, postId);
+    // P24: Moderation-aware initial status for comments.
+    const status = initialCommentStatus();
+
+    // 1. Insert comment (commentModel.create accepts status as 4th parameter, default 'approved')
+    const c = commentModel.create(content, userId, postId, status);
 
     // 2. Log activity
     activityModel.log(userId, 'comment_create', 'comment', c.id);
