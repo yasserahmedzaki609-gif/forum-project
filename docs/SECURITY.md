@@ -174,3 +174,36 @@ This document outlines the security posture of the Forum Project (P01–P26, F01
 - **No key rotation UI**: Rotate via `cipher_rekey` manually (see below).
 
 ### 7.7 Key rotation (manual, advanced)
+```bash
+# Stop the server, then:
+docker compose exec forum node -e "
+  const Database = require('better-sqlite3-multiple-ciphers');
+  const db = new Database('/app/data/forum.db');
+  db.pragma(\"key = 'OLD_PASSWORD'\");
+  db.pragma(\"rekey = 'NEW_PASSWORD'\");
+  db.close();
+"
+# Update DB_PASSWORD in .env, restart.
+```
+
+---
+
+## Accepted Risks
+
+### uuid (GHSA-w5hq-g745-h8pq)
+
+`uuid@9` is flagged for a buffer bounds issue in `v3()`, `v5()`, and `v6()`
+when an external `buf` is provided. Our codebase uses only `v4()` (via
+`uuidv4()` in `src/models/session.model.js`), which is explicitly not
+affected by this CVE.
+
+Upgrading to `uuid@14` would break CommonJS compatibility (v12+ are
+ESM-only). We keep `uuid@9` with a documented risk acceptance.
+
+### file-type (resolved)
+
+`file-type@16` was affected by CVE-2026-31808 (infinite loop in ASF parser
+on malformed input with zero-size sub-header). We replaced it with a custom
+magic-byte detector (`src/utils/imageType.js`) that only supports JPEG,
+PNG, WebP, and GIF. The vulnerable parser is no longer in the dependency
+tree.
