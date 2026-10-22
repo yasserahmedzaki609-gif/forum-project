@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /api/moderation/
+Disallow: /api/admin/
+Disallow: /api/users/
+Disallow: /api/roles/
+Disallow: /api/notifications
+Disallow: /api/activity/
+Allow: /
