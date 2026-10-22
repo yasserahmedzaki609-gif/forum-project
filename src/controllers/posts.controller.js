@@ -9,7 +9,7 @@ const activityModel = require('../models/activity.model'); // ← لا يزال 
 const { HttpError } = require('../middleware/errorHandler');
 const config = require('../config');
 
-// ملاحظة: تم إزالة reactionModel و notificationModel لأن منطقهما انتقل الآن 
+// ملاحظة: تم إزالة reactionModel و notificationModel لأن منطقهما انتقل الآن
 // إلى داخل postService لضمان الذرية (Atomicity)، مما يمنع تحذيرات ESLint.
 
 // ---------------------------------------------------------------------------
@@ -101,12 +101,7 @@ function createPost(req, res, next) {
       }
     }
 
-    const postId = postService.createPost(
-      req.user.id,
-      title.trim(),
-      content.trim(),
-      categoryIds
-    );
+    const postId = postService.createPost(req.user.id, title.trim(), content.trim(), categoryIds);
 
     res.status(201).json({ id: postId });
   } catch (err) {
@@ -197,12 +192,7 @@ function reactToPost(req, res, next) {
       throw new HttpError(400, 'Invalid reaction action');
     }
 
-    const result = postService.reactToPost(
-      req.user.id,
-      postId,
-      value,
-      post.user_id
-    );
+    const result = postService.reactToPost(req.user.id, postId, value, post.user_id);
 
     res.json(result);
   } catch (err) {
@@ -212,7 +202,7 @@ function reactToPost(req, res, next) {
 
 module.exports = {
   listPosts,
-  getPost,            
+  getPost,
   createPost,
   updatePost,
   deletePost,

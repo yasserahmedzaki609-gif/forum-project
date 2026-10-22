@@ -15,9 +15,13 @@ describe('C5 — Session last_seen_at Throttling', () => {
     agent = request.agent(app);
     const { token: t } = await getCsrfFor(agent);
     token = t;
-    await agent.post('/register').set('x-csrf-token', token)
+    await agent
+      .post('/register')
+      .set('x-csrf-token', token)
       .send({ username: 'c5user', email: 'c5@e.com', password: 'longpassword' });
-    await agent.post('/login').set('x-csrf-token', token)
+    await agent
+      .post('/login')
+      .set('x-csrf-token', token)
       .send({ username: 'c5user', password: 'longpassword' });
 
     const db = require('../src/database/db');
@@ -65,7 +69,9 @@ describe('C5 — Session last_seen_at Throttling', () => {
 
     try {
       const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000)
-        .toISOString().replace('T', ' ').slice(0, 19);
+        .toISOString()
+        .replace('T', ' ')
+        .slice(0, 19);
       db.prepare('UPDATE sessions SET last_seen_at = ? WHERE id = ?').run(tenMinAgo, sessionId);
 
       const before = db.prepare('SELECT last_seen_at FROM sessions WHERE id = ?').get(sessionId);

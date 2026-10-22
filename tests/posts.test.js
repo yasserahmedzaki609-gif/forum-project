@@ -10,9 +10,13 @@ beforeAll(async () => {
   const { token } = await getCsrfFor(agent);
   csrf = token;
 
-  await agent.post('/register').set('x-csrf-token', csrf)
+  await agent
+    .post('/register')
+    .set('x-csrf-token', csrf)
     .send({ username: 'puser', email: 'p@example.com', password: 'longpassword' });
-  await agent.post('/login').set('x-csrf-token', csrf)
+  await agent
+    .post('/login')
+    .set('x-csrf-token', csrf)
     .send({ username: 'puser', password: 'longpassword' });
 });
 
@@ -57,7 +61,7 @@ describe('Posts', () => {
       .send({ title: 'Hello', content: 'World', categoryIds: [1] });
     expect(res.status).toBe(201);
     expect(res.body.id).toBeGreaterThan(0);
-    
+
     // P24: approve so subsequent tests see this post in the feed
     approvePost(res.body.id);
   });

@@ -28,7 +28,7 @@ const createPostTx = db.transaction((userId, title, content, categoryIds) => {
 
   const postId = postModel.create(userId, title, content, categoryIds, status);
   activityModel.log(userId, 'post_create', 'post', postId);
-  
+
   return postId;
 });
 

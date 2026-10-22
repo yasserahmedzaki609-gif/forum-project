@@ -62,9 +62,7 @@ const stmtTouch = db.prepare(`
 `);
 
 const stmtDelete = db.prepare('DELETE FROM sessions WHERE id = ?');
-const stmtDeleteExpired = db.prepare(
-  'DELETE FROM sessions WHERE expires_at <= CURRENT_TIMESTAMP'
-);
+const stmtDeleteExpired = db.prepare('DELETE FROM sessions WHERE expires_at <= CURRENT_TIMESTAMP');
 const stmtDeleteByUser = db.prepare('DELETE FROM sessions WHERE user_id = ?');
 
 // ---------------------------------------------------------------------------

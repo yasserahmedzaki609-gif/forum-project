@@ -1,7 +1,7 @@
 const db = require('../database/db');
 
 const stmtInsert = db.prepare(
-  'INSERT INTO comments (content, user_id, post_id, status, updated_at) VALUES (?, ?, ?, ?, strftime(\'%Y-%m-%d %H:%M:%f\', \'now\'))'
+  "INSERT INTO comments (content, user_id, post_id, status, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))"
 );
 
 // D4: Pending comments must remain visible to their owner
@@ -28,11 +28,15 @@ const stmtUpdateContent = db.prepare(`
 const stmtDelete = db.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?');
 
 function listPending() {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT c.id, c.content, c.created_at, c.status, u.username AS author, p.title AS post_title, c.post_id
     FROM comments c JOIN users u ON u.id = c.user_id JOIN posts p ON p.id = c.post_id
     WHERE c.status = 'pending' ORDER BY c.created_at ASC
-  `).all();
+  `
+    )
+    .all();
 }
 
 module.exports = {

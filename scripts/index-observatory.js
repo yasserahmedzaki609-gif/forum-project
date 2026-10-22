@@ -225,7 +225,8 @@ function runOne(q) {
 
   let verdict;
   if (hasIndex && !hasScan) verdict = 'ok_index';
-  else if (hasIndex && hasScan) verdict = 'mixed'; // e.g. JOIN with one side scanned
+  else if (hasIndex && hasScan)
+    verdict = 'mixed'; // e.g. JOIN with one side scanned
   else if (hasScan) verdict = q.allowed === 'scan_ok' ? 'ok_scan' : 'warn_full_scan';
   else verdict = 'unknown';
 
@@ -256,7 +257,9 @@ function printHuman(results) {
   console.log('='.repeat(72));
   console.log(`DB:     ${config.db.path}`);
   console.log(`Env:    ${config.env}`);
-  console.log(`Tables: ${db.prepare("SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table'").get().c}`);
+  console.log(
+    `Tables: ${db.prepare("SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table'").get().c}`
+  );
   console.log('');
 
   let warnings = 0;

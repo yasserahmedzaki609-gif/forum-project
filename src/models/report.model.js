@@ -10,7 +10,9 @@ const stmtInsert = db.prepare(`
 `);
 
 const stmtById = db.prepare('SELECT * FROM reports WHERE id = ?');
-const stmtAllOpen = db.prepare("SELECT * FROM reports WHERE status = 'open' ORDER BY created_at ASC");
+const stmtAllOpen = db.prepare(
+  "SELECT * FROM reports WHERE status = 'open' ORDER BY created_at ASC"
+);
 const stmtUpdateStatus = db.prepare('UPDATE reports SET status = ? WHERE id = ?');
 
 module.exports = {

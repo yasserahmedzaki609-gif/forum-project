@@ -16,10 +16,8 @@ function log(level, msg, meta) {
   const out = level === 'error' ? 'error' : 'log';
 
   if (meta !== undefined) {
-    // eslint-disable-next-line no-console
     console[out](line, meta);
   } else {
-    // eslint-disable-next-line no-console
     console[out](line);
   }
 }

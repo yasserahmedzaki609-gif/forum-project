@@ -12,10 +12,12 @@ describe('F04 — Password Change', () => {
   async function setupUser(username) {
     const agent = request.agent(app);
     const { token } = await getCsrfFor(agent);
-    await agent.post('/register')
+    await agent
+      .post('/register')
       .set('x-csrf-token', token)
       .send({ username, email: `${username}@e.com`, password: 'oldpassword123' });
-    await agent.post('/login')
+    await agent
+      .post('/login')
       .set('x-csrf-token', token)
       .send({ username, password: 'oldpassword123' });
     return { agent, token };
@@ -24,7 +26,8 @@ describe('F04 — Password Change', () => {
   test('requires authentication', async () => {
     const anon = request.agent(app);
     const { token } = await getCsrfFor(anon);
-    const res = await anon.post('/api/users/me/password')
+    const res = await anon
+      .post('/api/users/me/password')
       .set('x-csrf-token', token)
       .send({ currentPassword: 'oldpassword123', newPassword: 'newpassword456' });
     expect(res.status).toBe(401);
@@ -32,7 +35,8 @@ describe('F04 — Password Change', () => {
 
   test('requires correct current password', async () => {
     const { agent, token } = await setupUser('pwtest1');
-    const res = await agent.post('/api/users/me/password')
+    const res = await agent
+      .post('/api/users/me/password')
       .set('x-csrf-token', token)
       .send({ currentPassword: 'wrongpassword', newPassword: 'newpassword456' });
     expect(res.status).toBe(401);
@@ -41,7 +45,8 @@ describe('F04 — Password Change', () => {
 
   test('rejects new password shorter than 8 chars', async () => {
     const { agent, token } = await setupUser('pwtest2');
-    const res = await agent.post('/api/users/me/password')
+    const res = await agent
+      .post('/api/users/me/password')
       .set('x-csrf-token', token)
       .send({ currentPassword: 'oldpassword123', newPassword: 'short' });
     expect(res.status).toBe(400);
@@ -49,7 +54,8 @@ describe('F04 — Password Change', () => {
 
   test('rejects new password equal to current', async () => {
     const { agent, token } = await setupUser('pwtest3');
-    const res = await agent.post('/api/users/me/password')
+    const res = await agent
+      .post('/api/users/me/password')
       .set('x-csrf-token', token)
       .send({ currentPassword: 'oldpassword123', newPassword: 'oldpassword123' });
     expect(res.status).toBe(400);
@@ -64,7 +70,8 @@ describe('F04 — Password Change', () => {
     const oldSession = db.prepare('SELECT id FROM sessions WHERE user_id = ?').get(user.id);
     expect(oldSession).toBeTruthy();
 
-    const res = await agent.post('/api/users/me/password')
+    const res = await agent
+      .post('/api/users/me/password')
       .set('x-csrf-token', token)
       .send({ currentPassword: 'oldpassword123', newPassword: 'newpassword789' });
     expect(res.status).toBe(200);
@@ -84,19 +91,22 @@ describe('F04 — Password Change', () => {
   test('old password no longer works after change', async () => {
     const { agent, token } = await setupUser('pwtest5');
 
-    await agent.post('/api/users/me/password')
+    await agent
+      .post('/api/users/me/password')
       .set('x-csrf-token', token)
       .send({ currentPassword: 'oldpassword123', newPassword: 'newpassword789' });
     await agent.post('/logout').set('x-csrf-token', token);
 
     const freshAgent = request.agent(app);
     const { token: t2 } = await getCsrfFor(freshAgent);
-    const oldLogin = await freshAgent.post('/login')
+    const oldLogin = await freshAgent
+      .post('/login')
       .set('x-csrf-token', t2)
       .send({ username: 'pwtest5', password: 'oldpassword123' });
     expect(oldLogin.status).toBe(401);
 
-    const newLogin = await freshAgent.post('/login')
+    const newLogin = await freshAgent
+      .post('/login')
       .set('x-csrf-token', t2)
       .send({ username: 'pwtest5', password: 'newpassword789' });
     expect(newLogin.status).toBe(200);
@@ -106,17 +116,20 @@ describe('F04 — Password Change', () => {
     // Register a user and log in from device A
     const deviceA = request.agent(app);
     const { token: tokenA } = await getCsrfFor(deviceA);
-    await deviceA.post('/register')
+    await deviceA
+      .post('/register')
       .set('x-csrf-token', tokenA)
       .send({ username: 'b2user', email: 'b2@e.com', password: 'oldpassword123' });
-    await deviceA.post('/login')
+    await deviceA
+      .post('/login')
       .set('x-csrf-token', tokenA)
       .send({ username: 'b2user', password: 'oldpassword123' });
 
     // Log in from device B (kills A due to single-session policy, so let's be careful)
     const deviceB = request.agent(app);
     const { token: tokenB } = await getCsrfFor(deviceB);
-    await deviceB.post('/login')
+    await deviceB
+      .post('/login')
       .set('x-csrf-token', tokenB)
       .send({ username: 'b2user', password: 'oldpassword123' });
 
@@ -138,20 +151,25 @@ describe('F04 — Password Change', () => {
     const extraSession = sessionModel.create(
       user.id,
       config.session.maxAgeMs,
-      null  // no UA binding
+      null // no UA binding
     );
 
-    const countBefore = db.prepare('SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?').get(user.id).c;
+    const countBefore = db
+      .prepare('SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?')
+      .get(user.id).c;
     expect(countBefore).toBeGreaterThanOrEqual(2);
 
     // Now change password from device B
-    const res = await deviceB.post('/api/users/me/password')
+    const res = await deviceB
+      .post('/api/users/me/password')
       .set('x-csrf-token', tokenB)
       .send({ currentPassword: 'oldpassword123', newPassword: 'newpassword456' });
     expect(res.status).toBe(200);
 
     // Verify only ONE session remains (the newly created one for device B)
-    const countAfter = db.prepare('SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?').get(user.id).c;
+    const countAfter = db
+      .prepare('SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?')
+      .get(user.id).c;
     expect(countAfter).toBe(1);
 
     // Verify the manually created extra session is gone

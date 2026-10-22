@@ -12,36 +12,38 @@ describe('C3 — Identities Endpoints', () => {
   // Seed DB with SSO identities for testing (does not go through OAuth flow)
   function addIdentity(userId, provider, providerUserId, email) {
     const db = require('../src/database/db');
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO identities (user_id, provider, provider_user_id, email)
       VALUES (?, ?, ?, ?)
-    `).run(userId, provider, providerUserId, email);
+    `
+    ).run(userId, provider, providerUserId, email);
   }
 
   function createUser(username, email, password) {
     const db = require('../src/database/db');
     const bcrypt = require('bcryptjs');
     const hash = bcrypt.hashSync(password, 10);
-    const info = db.prepare(
-      "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'user')"
-    ).run(username, email, hash);
+    const info = db
+      .prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'user')")
+      .run(username, email, hash);
     return info.lastInsertRowid;
   }
 
   function createSsoOnlyUser(username, email) {
     const db = require('../src/database/db');
     // SSO-only: password starts with '!'
-    const info = db.prepare(
-      "INSERT INTO users (username, email, password, role) VALUES (?, ?, '!unusable', 'user')"
-    ).run(username, email);
+    const info = db
+      .prepare(
+        "INSERT INTO users (username, email, password, role) VALUES (?, ?, '!unusable', 'user')"
+      )
+      .run(username, email);
     return info.lastInsertRowid;
   }
 
   async function loginAs(agent, username, password) {
     const { token } = await getCsrfFor(agent);
-    await agent.post('/login')
-      .set('x-csrf-token', token)
-      .send({ username, password });
+    await agent.post('/login').set('x-csrf-token', token).send({ username, password });
     return token;
   }
 
@@ -119,9 +121,7 @@ describe('C3 — Identities Endpoints', () => {
     // We'll cover this behavior at the model+controller level below.
 
     // Instead, verify the shape:
-    const ident = db.prepare(
-      "SELECT COUNT(*) AS c FROM identities WHERE user_id = ?"
-    ).get(userId);
+    const ident = db.prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?').get(userId);
     expect(ident.c).toBe(1);
     expect(true).toBe(true);
   });
@@ -133,8 +133,7 @@ describe('C3 — Identities Endpoints', () => {
     const agent = request.agent(app);
     const token = await loginAs(agent, 'invalidprov', 'longpassword');
 
-    const res = await agent.delete('/api/users/me/identities/twitter')
-      .set('x-csrf-token', token);
+    const res = await agent.delete('/api/users/me/identities/twitter').set('x-csrf-token', token);
     expect(res.status).toBe(400);
   });
 
@@ -144,8 +143,7 @@ describe('C3 — Identities Endpoints', () => {
     const agent = request.agent(app);
     const token = await loginAs(agent, 'nolink', 'longpassword');
 
-    const res = await agent.delete('/api/users/me/identities/github')
-      .set('x-csrf-token', token);
+    const res = await agent.delete('/api/users/me/identities/github').set('x-csrf-token', token);
     expect(res.status).toBe(404);
   });
 
@@ -156,16 +154,15 @@ describe('C3 — Identities Endpoints', () => {
     const agent = request.agent(app);
     const token = await loginAs(agent, 'unlinkme', 'longpassword');
 
-    const res = await agent.delete('/api/users/me/identities/github')
-      .set('x-csrf-token', token);
+    const res = await agent.delete('/api/users/me/identities/github').set('x-csrf-token', token);
     expect(res.status).toBe(200);
     expect(res.body.unlinked).toBe('github');
 
     // Verify DB
     const db = require('../src/database/db');
-    const count = db.prepare(
-      'SELECT COUNT(*) AS c FROM identities WHERE user_id = ?'
-    ).get(userId).c;
+    const count = db
+      .prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?')
+      .get(userId).c;
     expect(count).toBe(0);
   });
 
@@ -183,26 +180,23 @@ describe('C3 — Identities Endpoints', () => {
     const config = require('../src/config');
     const oldSession = sessionModel.create(userId, config.session.maxAgeMs, null);
 
-    const countBefore = db.prepare(
-      'SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?'
-    ).get(userId).c;
+    const countBefore = db
+      .prepare('SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?')
+      .get(userId).c;
     expect(countBefore).toBeGreaterThanOrEqual(2);
 
     // Unlink from device 1
-    const res = await device1.delete('/api/users/me/identities/github')
-      .set('x-csrf-token', token1);
+    const res = await device1.delete('/api/users/me/identities/github').set('x-csrf-token', token1);
     expect(res.status).toBe(200);
 
     // Only the new session remains (device 1 got a fresh one)
-    const countAfter = db.prepare(
-      'SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?'
-    ).get(userId).c;
+    const countAfter = db
+      .prepare('SELECT COUNT(*) AS c FROM sessions WHERE user_id = ?')
+      .get(userId).c;
     expect(countAfter).toBe(1);
 
     // The old manual session is gone
-    const stillThere = db.prepare(
-      'SELECT id FROM sessions WHERE id = ?'
-    ).get(oldSession.id);
+    const stillThere = db.prepare('SELECT id FROM sessions WHERE id = ?').get(oldSession.id);
     expect(stillThere).toBeUndefined();
   });
 
@@ -219,9 +213,9 @@ describe('C3 — Identities Endpoints', () => {
 
     // Use direct request with cookie — but cookie-session requires signed value.
     // Since we can't easily sign, let's verify the safety logic via DB:
-    const identCount = db.prepare(
-      'SELECT COUNT(*) AS c FROM identities WHERE user_id = ?'
-    ).get(userId).c;
+    const identCount = db
+      .prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?')
+      .get(userId).c;
     expect(identCount).toBe(2);
 
     // The controller would allow unlinking because length > 1.

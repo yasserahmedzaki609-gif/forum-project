@@ -76,6 +76,6 @@ module.exports = {
   validateReport,
   validateReportStatus,
   validateCreateCategory,
-  validateRoleRequest,        
-  validateRoleRequestReview,  
+  validateRoleRequest,
+  validateRoleRequestReview,
 };

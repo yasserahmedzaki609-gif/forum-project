@@ -46,7 +46,7 @@ if (config.db.password) {
       // injection.
       const safe = String(config.db.password).replace(/'/g, "''");
       db.pragma(`key = '${safe}'`);
-      
+
       // Force a read to verify the key is correct
       db.prepare('SELECT count(*) AS c FROM sqlite_master').get();
       logger.info('Database encryption key applied (SQLCipher)');

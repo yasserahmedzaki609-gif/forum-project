@@ -45,10 +45,7 @@ function readCookie(req, name) {
 // HMAC signature
 // ---------------------------------------------------------------------------
 function sign(token) {
-  return crypto
-    .createHmac('sha256', config.csrf.secret)
-    .update(token)
-    .digest('hex');
+  return crypto.createHmac('sha256', config.csrf.secret).update(token).digest('hex');
 }
 
 // ---------------------------------------------------------------------------

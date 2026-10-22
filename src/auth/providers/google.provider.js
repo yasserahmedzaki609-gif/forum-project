@@ -42,14 +42,7 @@ async function buildAuthUrl({ state, nonce, codeChallenge, redirectUri }) {
 // ---------------------------------------------------------------------------
 // Step 2: Exchange the authorization code for tokens
 // ---------------------------------------------------------------------------
-async function exchangeCode({
-  code,
-  state,
-  codeVerifier,
-  nonce,
-  redirectUri,
-  currentUrl,
-}) {
+async function exchangeCode({ code, state, codeVerifier, nonce, redirectUri, currentUrl }) {
   const { authorizationCodeGrant, fetchUserInfo } = await loadOpenidClient();
   const { getGoogleClient } = require('../oidc.client');
   const client = await getGoogleClient();
@@ -89,14 +82,8 @@ async function exchangeCode({
     providerUserId: claims.sub,
     email: claims.email || (userinfo && userinfo.email) || null,
     emailVerified:
-      claims.email_verified === true ||
-      (userinfo && userinfo.email_verified === true) ||
-      false,
-    displayName:
-      (userinfo && userinfo.name) ||
-      claims.name ||
-      claims.email ||
-      'Google User',
+      claims.email_verified === true || (userinfo && userinfo.email_verified === true) || false,
+    displayName: (userinfo && userinfo.name) || claims.name || claims.email || 'Google User',
     avatarUrl: (userinfo && userinfo.picture) || claims.picture || null,
   };
 }

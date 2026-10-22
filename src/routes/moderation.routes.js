@@ -12,8 +12,8 @@ const {
   validateReport,
   validateReportStatus,
   validateCreateCategory,
-  validateRoleRequest,        // ← جديد (P23)
-  validateRoleRequestReview,  // ← جديد (P23)
+  validateRoleRequest, // ← جديد (P23)
+  validateRoleRequestReview, // ← جديد (P23)
 } = require('../validators/moderation.validator');
 
 const { validate } = require('../middleware/validate');
@@ -34,12 +34,7 @@ router.patch(
 // ===========================================================================
 // Moderator: Queue & Status Management
 // ===========================================================================
-router.get(
-  '/api/moderation/queue',
-  requireAuth,
-  requireModerator,
-  moderationCtrl.listQueue
-);
+router.get('/api/moderation/queue', requireAuth, requireModerator, moderationCtrl.listQueue);
 
 router.patch(
   '/api/moderation/posts/:id/status',
@@ -63,17 +58,12 @@ router.patch(
 router.post(
   '/api/reports',
   requireAuth,
-  reportLimiter,   // ← F04-FIX (C2): Prevents flooding the moderation queue
+  reportLimiter, // ← F04-FIX (C2): Prevents flooding the moderation queue
   validate(validateReport),
   moderationCtrl.createReport
 );
 
-router.get(
-  '/api/moderation/reports',
-  requireAuth,
-  requireModerator,
-  moderationCtrl.listReports
-);
+router.get('/api/moderation/reports', requireAuth, requireModerator, moderationCtrl.listReports);
 
 router.patch(
   '/api/moderation/reports/:id',
@@ -107,11 +97,7 @@ router.post(
 );
 
 // User can view their own request history
-router.get(
-  '/api/roles/me',
-  requireAuth,
-  moderationCtrl.listMyRoleRequests
-);
+router.get('/api/roles/me', requireAuth, moderationCtrl.listMyRoleRequests);
 
 // Moderators can see the pending queue (to be aware of demand)
 router.get(
@@ -133,21 +119,11 @@ router.patch(
 // ===========================================================================
 // C1: Audit Trail (admin only)
 // ===========================================================================
-router.get(
-  '/api/moderation/audit-log',
-  requireAuth,
-  requireAdmin,
-  moderationCtrl.listAuditLog
-);
+router.get('/api/moderation/audit-log', requireAuth, requireAdmin, moderationCtrl.listAuditLog);
 
 // ===========================================================================
 // D3: Users list (admin only) for role management UI
 // ===========================================================================
-router.get(
-  '/api/users',
-  requireAuth,
-  requireAdmin,
-  moderationCtrl.listUsers
-);
+router.get('/api/users', requireAuth, requireAdmin, moderationCtrl.listUsers);
 
 module.exports = router;

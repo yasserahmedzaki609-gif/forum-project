@@ -10,9 +10,13 @@ beforeAll(async () => {
   const { token } = await getCsrfFor(agent);
   csrf = token;
 
-  await agent.post('/register').set('x-csrf-token', csrf)
+  await agent
+    .post('/register')
+    .set('x-csrf-token', csrf)
     .send({ username: 'suser', email: 's@example.com', password: 'longpassword' });
-  await agent.post('/login').set('x-csrf-token', csrf)
+  await agent
+    .post('/login')
+    .set('x-csrf-token', csrf)
     .send({ username: 'suser', password: 'longpassword' });
 });
 
@@ -22,14 +26,11 @@ describe('Security', () => {
     const freshAgent = request.agent(app);
     const { token } = await getCsrfFor(freshAgent);
 
-    await freshAgent
-      .post('/register')
-      .set('x-csrf-token', token)
-      .send({
-        username: 'cookieuser',
-        email: 'cookieuser@e.com',
-        password: 'longpassword',
-      });
+    await freshAgent.post('/register').set('x-csrf-token', token).send({
+      username: 'cookieuser',
+      email: 'cookieuser@e.com',
+      password: 'longpassword',
+    });
 
     const res = await freshAgent
       .post('/login')
@@ -59,9 +60,7 @@ describe('Security', () => {
   });
 
   test('SQL injection in category is not exploitable', async () => {
-    const res = await request(app).get(
-      "/api/posts?category=' OR 1=1 --"
-    );
+    const res = await request(app).get("/api/posts?category=' OR 1=1 --");
     expect(res.status).toBe(404); // Or 400 depending on your validation layer
   });
 
@@ -84,7 +83,7 @@ describe('Security', () => {
   // ------------------------------------------------------------------------
   test('H1: /health returns 200 with db=ok', async () => {
     const res = await request(app).get('/health');
-    
+
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
     expect(res.body.db).toBe('ok');

@@ -18,24 +18,33 @@ describe('C1 — Moderation Audit Trail', () => {
     adminAgent = request.agent(app);
     const { token: aT } = await getCsrfFor(adminAgent);
     adminToken = aT;
-    await adminAgent.post('/register').set('x-csrf-token', adminToken)
+    await adminAgent
+      .post('/register')
+      .set('x-csrf-token', adminToken)
       .send({ username: 'admin', email: 'admin@e.com', password: 'longpassword' });
-    await adminAgent.post('/login').set('x-csrf-token', adminToken)
+    await adminAgent
+      .post('/login')
+      .set('x-csrf-token', adminToken)
       .send({ username: 'admin', password: 'longpassword' });
 
     // Moderator (second user)
     modAgent = request.agent(app);
     const { token: mT } = await getCsrfFor(modAgent);
     modToken = mT;
-    await modAgent.post('/register').set('x-csrf-token', modToken)
+    await modAgent
+      .post('/register')
+      .set('x-csrf-token', modToken)
       .send({ username: 'mod', email: 'mod@e.com', password: 'longpassword' });
-    await modAgent.post('/login').set('x-csrf-token', modToken)
+    await modAgent
+      .post('/login')
+      .set('x-csrf-token', modToken)
       .send({ username: 'mod', password: 'longpassword' });
 
     // Promote mod to moderator
     const db = require('../src/database/db');
     const modUser = db.prepare('SELECT id FROM users WHERE username = ?').get('mod');
-    await adminAgent.patch(`/api/users/${modUser.id}/role`)
+    await adminAgent
+      .patch(`/api/users/${modUser.id}/role`)
       .set('x-csrf-token', adminToken)
       .send({ role: 'moderator' });
 
@@ -43,15 +52,21 @@ describe('C1 — Moderation Audit Trail', () => {
     userAgent = request.agent(app);
     const { token: uT } = await getCsrfFor(userAgent);
     userToken = uT;
-    await userAgent.post('/register').set('x-csrf-token', userToken)
+    await userAgent
+      .post('/register')
+      .set('x-csrf-token', userToken)
       .send({ username: 'regular', email: 'reg@e.com', password: 'longpassword' });
-    await userAgent.post('/login').set('x-csrf-token', userToken)
+    await userAgent
+      .post('/login')
+      .set('x-csrf-token', userToken)
       .send({ username: 'regular', password: 'longpassword' });
   });
 
   test('C1-1: post status change creates a log entry', async () => {
     // Create post (as regular user)
-    const p = await userAgent.post('/api/posts').set('x-csrf-token', userToken)
+    const p = await userAgent
+      .post('/api/posts')
+      .set('x-csrf-token', userToken)
       .send({ title: 'Audit test', content: 'Body', categoryIds: [1] });
     const postId = p.body.id;
 
@@ -64,9 +79,11 @@ describe('C1 — Moderation Audit Trail', () => {
 
     // Verify log entry exists
     const db = require('../src/database/db');
-    const log = db.prepare(
-      "SELECT * FROM moderation_logs WHERE action = 'post.status_change' AND target_id = ?"
-    ).get(postId);
+    const log = db
+      .prepare(
+        "SELECT * FROM moderation_logs WHERE action = 'post.status_change' AND target_id = ?"
+      )
+      .get(postId);
     expect(log).toBeDefined();
     expect(log.target_type).toBe('post');
     expect(log.metadata).toContain('approved');
@@ -75,26 +92,35 @@ describe('C1 — Moderation Audit Trail', () => {
 
   test('C1-2: comment status change creates a log entry', async () => {
     // Create + approve post
-    const p = await userAgent.post('/api/posts').set('x-csrf-token', userToken)
+    const p = await userAgent
+      .post('/api/posts')
+      .set('x-csrf-token', userToken)
       .send({ title: 'Comment target', content: 'Body', categoryIds: [1] });
     const postId = p.body.id;
-    await modAgent.patch(`/api/moderation/posts/${postId}/status`)
-      .set('x-csrf-token', modToken).send({ status: 'approved' });
+    await modAgent
+      .patch(`/api/moderation/posts/${postId}/status`)
+      .set('x-csrf-token', modToken)
+      .send({ status: 'approved' });
 
     // Create comment
-    const c = await userAgent.post(`/api/posts/${postId}/comments`)
+    const c = await userAgent
+      .post(`/api/posts/${postId}/comments`)
       .set('x-csrf-token', userToken)
       .send({ content: 'Audit comment' });
     const commentId = c.body.id;
 
     // Approve comment as mod
-    await modAgent.patch(`/api/moderation/comments/${commentId}/status`)
-      .set('x-csrf-token', modToken).send({ status: 'approved' });
+    await modAgent
+      .patch(`/api/moderation/comments/${commentId}/status`)
+      .set('x-csrf-token', modToken)
+      .send({ status: 'approved' });
 
     const db = require('../src/database/db');
-    const log = db.prepare(
-      "SELECT * FROM moderation_logs WHERE action = 'comment.status_change' AND target_id = ?"
-    ).get(commentId);
+    const log = db
+      .prepare(
+        "SELECT * FROM moderation_logs WHERE action = 'comment.status_change' AND target_id = ?"
+      )
+      .get(commentId);
     expect(log).toBeDefined();
   });
 
@@ -102,38 +128,48 @@ describe('C1 — Moderation Audit Trail', () => {
     const db = require('../src/database/db');
     const user = db.prepare('SELECT id FROM users WHERE username = ?').get('regular');
 
-    await adminAgent.patch(`/api/users/${user.id}/role`)
+    await adminAgent
+      .patch(`/api/users/${user.id}/role`)
       .set('x-csrf-token', adminToken)
       .send({ role: 'moderator' });
 
-    const log = db.prepare(
-      "SELECT * FROM moderation_logs WHERE action = 'user.role_change' AND target_id = ?"
-    ).get(user.id);
+    const log = db
+      .prepare("SELECT * FROM moderation_logs WHERE action = 'user.role_change' AND target_id = ?")
+      .get(user.id);
     expect(log).toBeDefined();
     expect(log.metadata).toContain('moderator');
   });
 
   test('C1-4: report status change creates a log entry', async () => {
-    const p = await userAgent.post('/api/posts').set('x-csrf-token', userToken)
+    const p = await userAgent
+      .post('/api/posts')
+      .set('x-csrf-token', userToken)
       .send({ title: 'Report target', content: 'Body', categoryIds: [1] });
     const postId = p.body.id;
-    await modAgent.patch(`/api/moderation/posts/${postId}/status`)
-      .set('x-csrf-token', modToken).send({ status: 'approved' });
+    await modAgent
+      .patch(`/api/moderation/posts/${postId}/status`)
+      .set('x-csrf-token', modToken)
+      .send({ status: 'approved' });
 
     // Create report
-    const r = await userAgent.post('/api/reports')
+    const r = await userAgent
+      .post('/api/reports')
       .set('x-csrf-token', userToken)
       .send({ targetType: 'post', targetId: postId, reason: 'Spam content' });
     const reportId = r.body.id;
 
     // Resolve as mod
-    await modAgent.patch(`/api/moderation/reports/${reportId}`)
-      .set('x-csrf-token', modToken).send({ status: 'resolved' });
+    await modAgent
+      .patch(`/api/moderation/reports/${reportId}`)
+      .set('x-csrf-token', modToken)
+      .send({ status: 'resolved' });
 
     const db = require('../src/database/db');
-    const log = db.prepare(
-      "SELECT * FROM moderation_logs WHERE action = 'report.status_change' AND target_id = ?"
-    ).get(reportId);
+    const log = db
+      .prepare(
+        "SELECT * FROM moderation_logs WHERE action = 'report.status_change' AND target_id = ?"
+      )
+      .get(reportId);
     expect(log).toBeDefined();
   });
 
@@ -141,25 +177,33 @@ describe('C1 — Moderation Audit Trail', () => {
     // Create a fresh user requesting moderator
     const reqAgent = request.agent(app);
     const { token: rt } = await getCsrfFor(reqAgent);
-    await reqAgent.post('/register').set('x-csrf-token', rt)
+    await reqAgent
+      .post('/register')
+      .set('x-csrf-token', rt)
       .send({ username: 'requester', email: 'req@e.com', password: 'longpassword' });
-    await reqAgent.post('/login').set('x-csrf-token', rt)
+    await reqAgent
+      .post('/login')
+      .set('x-csrf-token', rt)
       .send({ username: 'requester', password: 'longpassword' });
 
-    const rq = await reqAgent.post('/api/roles/request')
+    const rq = await reqAgent
+      .post('/api/roles/request')
       .set('x-csrf-token', rt)
       .send({ requestedRole: 'moderator', reason: 'I want to moderate this forum' });
     const requestId = rq.body.id;
 
     // Admin approves
-    await adminAgent.patch(`/api/moderation/role-requests/${requestId}`)
+    await adminAgent
+      .patch(`/api/moderation/role-requests/${requestId}`)
       .set('x-csrf-token', adminToken)
       .send({ action: 'approve' });
 
     const db = require('../src/database/db');
-    const log = db.prepare(
-      "SELECT * FROM moderation_logs WHERE action = 'role_request.approve' AND target_id = ?"
-    ).get(requestId);
+    const log = db
+      .prepare(
+        "SELECT * FROM moderation_logs WHERE action = 'role_request.approve' AND target_id = ?"
+      )
+      .get(requestId);
     expect(log).toBeDefined();
   });
 
@@ -184,16 +228,16 @@ describe('C1 — Moderation Audit Trail', () => {
 
   test('C1-9: audit log can be filtered by target', async () => {
     const db = require('../src/database/db');
-    const targetPost = db.prepare(
-      "SELECT target_id FROM moderation_logs WHERE action = 'post.status_change' LIMIT 1"
-    ).get();
+    const targetPost = db
+      .prepare("SELECT target_id FROM moderation_logs WHERE action = 'post.status_change' LIMIT 1")
+      .get();
 
     const res = await adminAgent.get(
       `/api/moderation/audit-log?target_type=post&target_id=${targetPost.target_id}`
     );
     expect(res.status).toBe(200);
     expect(res.body.length).toBeGreaterThan(0);
-    expect(res.body.every(l => l.target_id === targetPost.target_id)).toBe(true);
+    expect(res.body.every((l) => l.target_id === targetPost.target_id)).toBe(true);
   });
 
   test('C1-10: audit log is append-only (no update/delete endpoints)', async () => {
@@ -202,20 +246,28 @@ describe('C1 — Moderation Audit Trail', () => {
     // a second status change produces a NEW row, not an update.
     const db = require('../src/database/db');
 
-    const p = await userAgent.post('/api/posts').set('x-csrf-token', userToken)
+    const p = await userAgent
+      .post('/api/posts')
+      .set('x-csrf-token', userToken)
       .send({ title: 'Double change', content: 'Body', categoryIds: [1] });
     const postId = p.body.id;
 
     // Approve
-    await modAgent.patch(`/api/moderation/posts/${postId}/status`)
-      .set('x-csrf-token', modToken).send({ status: 'approved' });
+    await modAgent
+      .patch(`/api/moderation/posts/${postId}/status`)
+      .set('x-csrf-token', modToken)
+      .send({ status: 'approved' });
     // Reject
-    await modAgent.patch(`/api/moderation/posts/${postId}/status`)
-      .set('x-csrf-token', modToken).send({ status: 'rejected' });
+    await modAgent
+      .patch(`/api/moderation/posts/${postId}/status`)
+      .set('x-csrf-token', modToken)
+      .send({ status: 'rejected' });
 
-    const logs = db.prepare(
-      "SELECT * FROM moderation_logs WHERE action = 'post.status_change' AND target_id = ?"
-    ).all(postId);
+    const logs = db
+      .prepare(
+        "SELECT * FROM moderation_logs WHERE action = 'post.status_change' AND target_id = ?"
+      )
+      .all(postId);
     // Two separate rows, not one updated row
     expect(logs.length).toBe(2);
   });

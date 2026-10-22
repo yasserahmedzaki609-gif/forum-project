@@ -20,7 +20,7 @@ function listComments(req, res, next) {
     if (!postModel.findById(postId)) {
       throw new HttpError(404, 'Post not found');
     }
-    
+
     // D4: pass viewerId so the author can see their own pending comments
     const viewerId = req.user ? req.user.id : null;
     res.json(commentModel.findByPost(postId, viewerId));
@@ -45,12 +45,7 @@ function createComment(req, res, next) {
     const { content } = req.body;
 
     // P25-FIX: All three operations run in one transaction via Service Layer.
-    const c = commentService.createComment(
-      req.user.id,
-      postId,
-      content.trim(),
-      post.user_id
-    );
+    const c = commentService.createComment(req.user.id, postId, content.trim(), post.user_id);
 
     res.status(201).json({ id: c.id });
   } catch (err) {
@@ -134,12 +129,7 @@ function reactToComment(req, res, next) {
     }
 
     // P25-FIX: Reaction + optional notification in one transaction via Service Layer.
-    const result = commentService.reactToComment(
-      req.user.id,
-      commentId,
-      value,
-      comment.user_id
-    );
+    const result = commentService.reactToComment(req.user.id, commentId, value, comment.user_id);
 
     res.json(result);
   } catch (err) {
@@ -147,10 +137,10 @@ function reactToComment(req, res, next) {
   }
 }
 
-module.exports = { 
-  listComments, 
-  createComment, 
-  updateComment, 
-  deleteComment, 
-  reactToComment 
+module.exports = {
+  listComments,
+  createComment,
+  updateComment,
+  deleteComment,
+  reactToComment,
 };

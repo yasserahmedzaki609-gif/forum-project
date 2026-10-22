@@ -56,21 +56,18 @@ app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data:; " +
-    "form-action 'self'; " +
-    "frame-ancestors 'none'; " +
-    "base-uri 'self';"
+      "script-src 'self'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data:; " +
+      "form-action 'self'; " +
+      "frame-ancestors 'none'; " +
+      "base-uri 'self';"
   );
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
+
   // F04: Enhanced HSTS with preload and 2-year max-age
-  res.setHeader(
-    'Strict-Transport-Security',
-    'max-age=63072000; includeSubDomains; preload'
-  );
-  
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+
   next();
 });
 
@@ -219,23 +216,29 @@ app.use(errorHandler);
 // ---------------------------------------------------------------------------
 
 // Expired sessions: hourly
-setInterval(() => {
-  try {
-    const sessionModel = require('./models/session.model');
-    sessionModel.deleteExpired();
-  } catch (e) {
-    logger.error('Session cleanup failed', e);
-  }
-}, 60 * 60 * 1000).unref();
+setInterval(
+  () => {
+    try {
+      const sessionModel = require('./models/session.model');
+      sessionModel.deleteExpired();
+    } catch (e) {
+      logger.error('Session cleanup failed', e);
+    }
+  },
+  60 * 60 * 1000
+).unref();
 
 // Expired OAuth states: every 10 minutes
-setInterval(() => {
-  try {
-    const oauthStateModel = require('./models/oauthState.model');
-    oauthStateModel.cleanupExpired();
-  } catch (e) {
-    logger.error('OAuth state cleanup failed', e);
-  }
-}, 10 * 60 * 1000).unref();
+setInterval(
+  () => {
+    try {
+      const oauthStateModel = require('./models/oauthState.model');
+      oauthStateModel.cleanupExpired();
+    } catch (e) {
+      logger.error('OAuth state cleanup failed', e);
+    }
+  },
+  10 * 60 * 1000
+).unref();
 
 module.exports = app;

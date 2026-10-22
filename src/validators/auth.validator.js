@@ -15,10 +15,7 @@ function validateRegister(req) {
   }
 
   if (typeof username !== 'string' || !USERNAME_RE.test(username)) {
-    throw new HttpError(
-      400,
-      'Username must be 3-30 chars: letters, digits, underscore'
-    );
+    throw new HttpError(400, 'Username must be 3-30 chars: letters, digits, underscore');
   }
 
   if (typeof email !== 'string' || !EMAIL_RE.test(email)) {

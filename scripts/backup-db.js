@@ -26,9 +26,7 @@ function main() {
   }
 
   const dbPath = path.resolve(config.db.path);
-  const backupPath = path.resolve(
-    process.argv[2] || `./data/backup-${Date.now()}.db`
-  );
+  const backupPath = path.resolve(process.argv[2] || `./data/backup-${Date.now()}.db`);
 
   if (!fs.existsSync(dbPath)) {
     console.error(`Database not found: ${dbPath}`);
@@ -60,7 +58,7 @@ function main() {
 
   // Export to backup file (encrypted with the same password)
   db.exec(`ATTACH DATABASE '${backupPath}' AS backup KEY '${config.db.password}'`);
-  db.exec('SELECT sqlcipher_export(\'backup\')');
+  db.exec("SELECT sqlcipher_export('backup')");
   db.exec('DETACH DATABASE backup');
   db.close();
 

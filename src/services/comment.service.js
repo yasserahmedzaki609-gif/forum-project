@@ -21,41 +21,37 @@ const { initialCommentStatus } = require('../middleware/moderationMode'); // ←
 // ---------------------------------------------------------------------------
 // P25 + P24: Atomic createComment with moderation-aware initial status
 // ---------------------------------------------------------------------------
-const createCommentTx = db.transaction(
-  (userId, postId, content, postOwnerId) => {
-    // P24: Moderation-aware initial status for comments.
-    const status = initialCommentStatus();
+const createCommentTx = db.transaction((userId, postId, content, postOwnerId) => {
+  // P24: Moderation-aware initial status for comments.
+  const status = initialCommentStatus();
 
-    // 1. Insert comment (commentModel.create accepts status as 4th parameter, default 'approved')
-    const c = commentModel.create(content, userId, postId, status);
+  // 1. Insert comment (commentModel.create accepts status as 4th parameter, default 'approved')
+  const c = commentModel.create(content, userId, postId, status);
 
-    // 2. Log activity
-    activityModel.log(userId, 'comment_create', 'comment', c.id);
+  // 2. Log activity
+  activityModel.log(userId, 'comment_create', 'comment', c.id);
 
-    // 3. Notify post owner (only if not self)
-    if (postOwnerId !== userId) {
-      notificationModel.create(postOwnerId, userId, 'comment', 'post', postId);
-    }
-
-    return c;
+  // 3. Notify post owner (only if not self)
+  if (postOwnerId !== userId) {
+    notificationModel.create(postOwnerId, userId, 'comment', 'post', postId);
   }
-);
+
+  return c;
+});
 
 // ---------------------------------------------------------------------------
 // P25: Atomic reactToComment (like/dislike + notification)
 // ---------------------------------------------------------------------------
-const reactToCommentTx = db.transaction(
-  (userId, commentId, value, commentOwnerId) => {
-    const result = reactionModel.react(userId, 'comment', commentId, value);
+const reactToCommentTx = db.transaction((userId, commentId, value, commentOwnerId) => {
+  const result = reactionModel.react(userId, 'comment', commentId, value);
 
-    // Only notify on new like (not on unlike, not on self-like)
-    if (result.action === 'added' && value === 1 && commentOwnerId !== userId) {
-      notificationModel.create(commentOwnerId, userId, 'like', 'comment', commentId);
-    }
-
-    return result;
+  // Only notify on new like (not on unlike, not on self-like)
+  if (result.action === 'added' && value === 1 && commentOwnerId !== userId) {
+    notificationModel.create(commentOwnerId, userId, 'like', 'comment', commentId);
   }
-);
+
+  return result;
+});
 
 module.exports = {
   createComment: createCommentTx,

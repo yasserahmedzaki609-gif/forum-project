@@ -56,9 +56,7 @@ const consumeTx = db.transaction((state) => {
 // ---------------------------------------------------------------------------
 module.exports = {
   create: ({ state, codeVerifier, nonce, provider, redirectTo, linkUserId }) => {
-    const expiresAt = toSqliteTimestamp(
-      new Date(Date.now() + config.sso.stateTtlMs)
-    );
+    const expiresAt = toSqliteTimestamp(new Date(Date.now() + config.sso.stateTtlMs));
     stmtInsert.run(
       state,
       codeVerifier,

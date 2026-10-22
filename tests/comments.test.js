@@ -10,12 +10,18 @@ beforeAll(async () => {
   const { token } = await getCsrfFor(agent);
   csrf = token;
 
-  await agent.post('/register').set('x-csrf-token', csrf)
+  await agent
+    .post('/register')
+    .set('x-csrf-token', csrf)
     .send({ username: 'cuser', email: 'c@example.com', password: 'longpassword' });
-  await agent.post('/login').set('x-csrf-token', csrf)
+  await agent
+    .post('/login')
+    .set('x-csrf-token', csrf)
     .send({ username: 'cuser', password: 'longpassword' });
 
-  const p = await agent.post('/api/posts').set('x-csrf-token', csrf)
+  const p = await agent
+    .post('/api/posts')
+    .set('x-csrf-token', csrf)
     .send({ title: 'Post', content: 'Body', categoryIds: [1] });
   postId = p.body.id;
 });
@@ -28,9 +34,7 @@ describe('Comments', () => {
   });
 
   test('add comment requires CSRF (403)', async () => {
-    const res = await request(app)
-      .post(`/api/posts/${postId}/comments`)
-      .send({ content: 'hi' });
+    const res = await request(app).post(`/api/posts/${postId}/comments`).send({ content: 'hi' });
     expect(res.status).toBe(403);
   });
 
@@ -51,7 +55,7 @@ describe('Comments', () => {
       .send({ content: 'Nice post!' });
     expect(res.status).toBe(201);
     expect(res.body.id).toBeGreaterThan(0);
-    
+
     // P24: approve the comment so it appears in the list
     approveComment(res.body.id);
   });
@@ -82,7 +86,8 @@ describe('Comments', () => {
   // D4 Test: Must be at the end to avoid interfering with other tests
   test('D4: author can see their own pending comment', async () => {
     // Create a pending comment (post-P24, all new comments are pending)
-    const c = await agent.post(`/api/posts/${postId}/comments`)
+    const c = await agent
+      .post(`/api/posts/${postId}/comments`)
       .set('x-csrf-token', csrf)
       .send({ content: 'This stays pending' });
     expect(c.status).toBe(201);
@@ -90,10 +95,10 @@ describe('Comments', () => {
 
     // Author (agent is logged in) should see it in the list
     const authorView = await agent.get(`/api/posts/${postId}/comments`);
-    expect(authorView.body.some(cmt => cmt.id === pendingId)).toBe(true);
+    expect(authorView.body.some((cmt) => cmt.id === pendingId)).toBe(true);
 
     // Guest should NOT see it
     const guestView = await request(app).get(`/api/posts/${postId}/comments`);
-    expect(guestView.body.some(cmt => cmt.id === pendingId)).toBe(false);
+    expect(guestView.body.some((cmt) => cmt.id === pendingId)).toBe(false);
   });
 });

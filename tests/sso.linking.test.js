@@ -1,8 +1,7 @@
 require('./setup');
 
 jest.mock('../src/auth/providers/google.provider', () => ({
-  buildAuthUrl: jest.fn(async ({ state }) =>
-    `https://accounts.google.com/x?state=${state}`),
+  buildAuthUrl: jest.fn(async ({ state }) => `https://accounts.google.com/x?state=${state}`),
   exchangeCode: jest.fn(async () => ({
     provider: 'google',
     providerUserId: 'goog-A',
@@ -14,8 +13,7 @@ jest.mock('../src/auth/providers/google.provider', () => ({
 }));
 
 jest.mock('../src/auth/providers/github.provider', () => ({
-  buildAuthUrl: jest.fn(({ state }) =>
-    `https://github.com/login/oauth/authorize?state=${state}`),
+  buildAuthUrl: jest.fn(({ state }) => `https://github.com/login/oauth/authorize?state=${state}`),
   exchangeCode: jest.fn(async () => ({
     provider: 'github',
     providerUserId: 'gh-A',
@@ -45,7 +43,9 @@ describe('SSO — Account Linking', () => {
     const agent = request.agent(app);
     const { token: csrf } = await getCsrfFor(agent);
 
-    const reg = await agent.post('/register').set('x-csrf-token', csrf)
+    const reg = await agent
+      .post('/register')
+      .set('x-csrf-token', csrf)
       .send({ username: 'shareduser', email: 'shared@example.com', password: 'longpassword' });
     expect(reg.status).toBe(201);
 
@@ -74,10 +74,13 @@ describe('SSO — Account Linking', () => {
     const cb = await agent.get(`/auth/github/callback?code=ok&state=${st}`);
     expect(cb.status).toBe(302);
 
-    const userId = db.prepare("SELECT user_id FROM identities WHERE provider='google'").get().user_id;
-    const linked = db.prepare(
-      'SELECT provider FROM identities WHERE user_id = ? ORDER BY provider'
-    ).all(userId).map((r) => r.provider);
+    const userId = db
+      .prepare("SELECT user_id FROM identities WHERE provider='google'")
+      .get().user_id;
+    const linked = db
+      .prepare('SELECT provider FROM identities WHERE user_id = ? ORDER BY provider')
+      .all(userId)
+      .map((r) => r.provider);
 
     expect(linked).toEqual(['github', 'google']);
   });
@@ -108,9 +111,9 @@ describe('SSO — Unverified Email Protection', () => {
     const after = db.prepare('SELECT COUNT(*) AS c FROM users').get().c;
     expect(after).toBe(before);
 
-    const attackerIdentity = db.prepare(
-      "SELECT * FROM identities WHERE provider_user_id = 'goog-attacker'"
-    ).get();
+    const attackerIdentity = db
+      .prepare("SELECT * FROM identities WHERE provider_user_id = 'goog-attacker'")
+      .get();
     expect(attackerIdentity).toBeUndefined();
   });
 });
@@ -175,9 +178,7 @@ describe('SSO — First-User Admin Bootstrap (B1)', () => {
     const state = new URL(start.headers.location).searchParams.get('state');
     await agent.get(`/auth/google/callback?code=ok&state=${state}`);
 
-    const user = db
-      .prepare('SELECT role FROM users WHERE email = ?')
-      .get('second@example.com');
+    const user = db.prepare('SELECT role FROM users WHERE email = ?').get('second@example.com');
     expect(user.role).toBe('user');
   });
 
@@ -190,19 +191,14 @@ describe('SSO — First-User Admin Bootstrap (B1)', () => {
 
     const agent = request.agent(localApp);
     const { token } = await getCsrfFor(agent);
-    const res = await agent
-      .post('/register')
-      .set('x-csrf-token', token)
-      .send({
-        username: 'firstlocal',
-        email: 'firstlocal@e.com',
-        password: 'longpassword',
-      });
+    const res = await agent.post('/register').set('x-csrf-token', token).send({
+      username: 'firstlocal',
+      email: 'firstlocal@e.com',
+      password: 'longpassword',
+    });
     expect(res.status).toBe(201);
 
-    const user = db
-      .prepare('SELECT role FROM users WHERE username = ?')
-      .get('firstlocal');
+    const user = db.prepare('SELECT role FROM users WHERE username = ?').get('firstlocal');
     expect(user.role).toBe('admin');
   });
 });

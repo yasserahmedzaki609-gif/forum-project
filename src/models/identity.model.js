@@ -14,18 +14,14 @@ const stmtByUser = db.prepare(`
   ORDER BY created_at ASC
 `);
 
-const stmtCountByUser = db.prepare(
-  'SELECT COUNT(*) AS c FROM identities WHERE user_id = ?'
-);
+const stmtCountByUser = db.prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?');
 
-const stmtDelete = db.prepare(
-  'DELETE FROM identities WHERE user_id = ? AND provider = ?'
-);
+const stmtDelete = db.prepare('DELETE FROM identities WHERE user_id = ? AND provider = ?');
 
 module.exports = {
   listForUser: (userId) => stmtByUser.all(userId),
   countForUser: (userId) => stmtCountByUser.get(userId).c,
-  
+
   // Safely unlink a specific provider for a user. Returns true if a row was actually deleted.
   deleteByUserAndProvider: (userId, provider) => {
     const info = stmtDelete.run(userId, provider);

@@ -20,9 +20,7 @@ const stmtListForPost = db.prepare(`
   ORDER BY created_at ASC
 `);
 
-const stmtCountForUser = db.prepare(
-  'SELECT COUNT(*) AS c FROM media WHERE user_id = ?'
-);
+const stmtCountForUser = db.prepare('SELECT COUNT(*) AS c FROM media WHERE user_id = ?');
 
 const stmtDelete = db.prepare('DELETE FROM media WHERE id = ?');
 

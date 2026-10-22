@@ -10,15 +10,21 @@ beforeAll(async () => {
   const { token } = await getCsrfFor(agent);
   csrf = token;
 
-  await agent.post('/register').set('x-csrf-token', csrf)
+  await agent
+    .post('/register')
+    .set('x-csrf-token', csrf)
     .send({ username: 'spostuser', email: 'spost@e.com', password: 'longpassword' });
-  await agent.post('/login').set('x-csrf-token', csrf)
+  await agent
+    .post('/login')
+    .set('x-csrf-token', csrf)
     .send({ username: 'spostuser', password: 'longpassword' });
 
-  const p = await agent.post('/api/posts').set('x-csrf-token', csrf)
+  const p = await agent
+    .post('/api/posts')
+    .set('x-csrf-token', csrf)
     .send({ title: 'Single post test', content: 'Body', categoryIds: [1] });
   postId = p.body.id;
-  
+
   // P24: approve so the post is visible to guests
   approvePost(postId);
 });

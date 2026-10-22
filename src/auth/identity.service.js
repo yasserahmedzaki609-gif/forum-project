@@ -37,13 +37,9 @@ const stmtInsertIdentity = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?)
 `);
 
-const stmtFindUserByEmail = db.prepare(
-  'SELECT id, email FROM users WHERE email = ?'
-);
+const stmtFindUserByEmail = db.prepare('SELECT id, email FROM users WHERE email = ?');
 
-const stmtUsernameExists = db.prepare(
-  'SELECT 1 FROM users WHERE username = ?'
-);
+const stmtUsernameExists = db.prepare('SELECT 1 FROM users WHERE username = ?');
 
 // F04-FIX (B1): Include `role` so we can bootstrap the first-ever user
 // (whether local or SSO) as admin. Without this, an SSO-first deployment
@@ -88,17 +84,11 @@ function buildUniqueUsername(base) {
 // Link flow (user already logged in)
 // ---------------------------------------------------------------------------
 const linkTx = db.transaction((linkUserId, profile) => {
-  const existing = stmtFindIdentity.get(
-    profile.provider,
-    profile.providerUserId
-  );
+  const existing = stmtFindIdentity.get(profile.provider, profile.providerUserId);
 
   if (existing) {
     if (existing.user_id !== linkUserId) {
-      throw new HttpError(
-        409,
-        'This provider account is already linked to another user'
-      );
+      throw new HttpError(409, 'This provider account is already linked to another user');
     }
     return {
       userId: linkUserId,
@@ -125,14 +115,7 @@ const linkTx = db.transaction((linkUserId, profile) => {
 // Login flow (user not logged in)
 // ---------------------------------------------------------------------------
 const loginTx = db.transaction((profile) => {
-  const {
-    provider,
-    providerUserId,
-    email,
-    emailVerified,
-    displayName,
-    avatarUrl,
-  } = profile;
+  const { provider, providerUserId, email, emailVerified, displayName, avatarUrl } = profile;
 
   // Rule 1 — existing identity
   const existing = stmtFindIdentity.get(provider, providerUserId);
@@ -167,10 +150,7 @@ const loginTx = db.transaction((profile) => {
 
   // Rule 4 — create new user
   if (!email) {
-    throw new HttpError(
-      400,
-      'Provider did not return an email address; cannot create an account.'
-    );
+    throw new HttpError(400, 'Provider did not return an email address; cannot create an account.');
   }
 
   const username = buildUniqueUsername(displayName || email.split('@')[0]);
@@ -182,12 +162,7 @@ const loginTx = db.transaction((profile) => {
   const isFirstUser = stmtCountUsers.get().c === 0;
   const role = isFirstUser ? 'admin' : 'user';
 
-  const info = stmtInsertUser.run(
-    username,
-    email,
-    unusablePasswordHash(),
-    role
-  );
+  const info = stmtInsertUser.run(username, email, unusablePasswordHash(), role);
   const userId = info.lastInsertRowid;
 
   stmtInsertIdentity.run(
@@ -200,9 +175,7 @@ const loginTx = db.transaction((profile) => {
   );
 
   if (isFirstUser) {
-    logger.info(
-      `Bootstrapped first user (${username}, id=${userId}) as admin via ${provider}`
-    );
+    logger.info(`Bootstrapped first user (${username}, id=${userId}) as admin via ${provider}`);
   } else {
     logger.info(`Created new user ${userId} via ${provider} (role=${role})`);
   }

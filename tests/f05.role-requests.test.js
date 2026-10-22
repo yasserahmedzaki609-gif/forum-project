@@ -17,18 +17,26 @@ describe('P23 — Role Requests', () => {
     adminAgent = request.agent(app);
     const { token: aT } = await getCsrfFor(adminAgent);
     adminToken = aT;
-    await adminAgent.post('/register').set('x-csrf-token', adminToken)
+    await adminAgent
+      .post('/register')
+      .set('x-csrf-token', adminToken)
       .send({ username: 'admin', email: 'admin@e.com', password: 'longpassword' });
-    await adminAgent.post('/login').set('x-csrf-token', adminToken)
+    await adminAgent
+      .post('/login')
+      .set('x-csrf-token', adminToken)
       .send({ username: 'admin', password: 'longpassword' });
 
     // Second user is regular
     userAgent = request.agent(app);
     const { token: uT } = await getCsrfFor(userAgent);
     userToken = uT;
-    await userAgent.post('/register').set('x-csrf-token', userToken)
+    await userAgent
+      .post('/register')
+      .set('x-csrf-token', userToken)
       .send({ username: 'regularuser', email: 'user@e.com', password: 'longpassword' });
-    await userAgent.post('/login').set('x-csrf-token', userToken)
+    await userAgent
+      .post('/login')
+      .set('x-csrf-token', userToken)
       .send({ username: 'regularuser', password: 'longpassword' });
   });
 
@@ -55,9 +63,13 @@ describe('P23 — Role Requests', () => {
     // Use a fresh agent so no pending request interferes
     const freshAgent = request.agent(app);
     const { token } = await getCsrfFor(freshAgent);
-    await freshAgent.post('/register').set('x-csrf-token', token)
+    await freshAgent
+      .post('/register')
+      .set('x-csrf-token', token)
       .send({ username: 'wannabe', email: 'w@e.com', password: 'longpassword' });
-    await freshAgent.post('/login').set('x-csrf-token', token)
+    await freshAgent
+      .post('/login')
+      .set('x-csrf-token', token)
       .send({ username: 'wannabe', password: 'longpassword' });
 
     const res = await freshAgent
@@ -70,9 +82,13 @@ describe('P23 — Role Requests', () => {
   test('validates requestedRole value', async () => {
     const freshAgent = request.agent(app);
     const { token } = await getCsrfFor(freshAgent);
-    await freshAgent.post('/register').set('x-csrf-token', token)
+    await freshAgent
+      .post('/register')
+      .set('x-csrf-token', token)
       .send({ username: 'invalidrole', email: 'i@e.com', password: 'longpassword' });
-    await freshAgent.post('/login').set('x-csrf-token', token)
+    await freshAgent
+      .post('/login')
+      .set('x-csrf-token', token)
       .send({ username: 'invalidrole', password: 'longpassword' });
 
     const res = await freshAgent
@@ -85,9 +101,13 @@ describe('P23 — Role Requests', () => {
   test('validates reason length (min 10 chars)', async () => {
     const freshAgent = request.agent(app);
     const { token } = await getCsrfFor(freshAgent);
-    await freshAgent.post('/register').set('x-csrf-token', token)
+    await freshAgent
+      .post('/register')
+      .set('x-csrf-token', token)
       .send({ username: 'shortreason', email: 's@e.com', password: 'longpassword' });
-    await freshAgent.post('/login').set('x-csrf-token', token)
+    await freshAgent
+      .post('/login')
+      .set('x-csrf-token', token)
       .send({ username: 'shortreason', password: 'longpassword' });
 
     const res = await freshAgent
@@ -98,14 +118,12 @@ describe('P23 — Role Requests', () => {
   });
 
   test('regular user cannot access moderation queue', async () => {
-    const res = await userAgent
-      .get('/api/moderation/role-requests');
+    const res = await userAgent.get('/api/moderation/role-requests');
     expect(res.status).toBe(403);
   });
 
   test('admin can list pending requests', async () => {
-    const res = await adminAgent
-      .get('/api/moderation/role-requests');
+    const res = await adminAgent.get('/api/moderation/role-requests');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
@@ -116,7 +134,7 @@ describe('P23 — Role Requests', () => {
   test('admin approves request → user role changed', async () => {
     // Find the pending request for regularuser
     const list = await adminAgent.get('/api/moderation/role-requests');
-    const request1 = list.body.find(r => r.requester_username === 'regularuser');
+    const request1 = list.body.find((r) => r.requester_username === 'regularuser');
     expect(request1).toBeDefined();
 
     const res = await adminAgent
@@ -140,9 +158,9 @@ describe('P23 — Role Requests', () => {
     // Approve action on the same id should now fail because it's no longer pending
     // We test via checking the request status in DB
     const db = require('../src/database/db');
-    const approved = db.prepare(
-      "SELECT id FROM role_requests WHERE status = 'approved' LIMIT 1"
-    ).get();
+    const approved = db
+      .prepare("SELECT id FROM role_requests WHERE status = 'approved' LIMIT 1")
+      .get();
     expect(approved).toBeDefined();
 
     const res = await adminAgent
@@ -156,9 +174,13 @@ describe('P23 — Role Requests', () => {
     // Create a new user + request
     const newAgent = request.agent(app);
     const { token } = await getCsrfFor(newAgent);
-    await newAgent.post('/register').set('x-csrf-token', token)
+    await newAgent
+      .post('/register')
+      .set('x-csrf-token', token)
       .send({ username: 'rejectme', email: 'rj@e.com', password: 'longpassword' });
-    await newAgent.post('/login').set('x-csrf-token', token)
+    await newAgent
+      .post('/login')
+      .set('x-csrf-token', token)
       .send({ username: 'rejectme', password: 'longpassword' });
 
     const create = await newAgent
@@ -181,8 +203,7 @@ describe('P23 — Role Requests', () => {
   });
 
   test('user can view their own request history', async () => {
-    const res = await userAgent
-      .get('/api/roles/me');
+    const res = await userAgent.get('/api/roles/me');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);

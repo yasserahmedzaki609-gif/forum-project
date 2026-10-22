@@ -22,9 +22,7 @@ for (const t of tables) {
 console.log('\nApplied migrations:');
 console.log('─'.repeat(40));
 
-const migrations = db
-  .prepare('SELECT name, applied_at FROM schema_migrations ORDER BY id')
-  .all();
+const migrations = db.prepare('SELECT name, applied_at FROM schema_migrations ORDER BY id').all();
 
 for (const m of migrations) {
   console.log(`  ${m.name.padEnd(25)} ${m.applied_at}`);

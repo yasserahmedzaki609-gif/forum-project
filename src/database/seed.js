@@ -19,12 +19,7 @@ const logger = require('../utils/logger');
 // Admins can add more later; these are just to make the forum usable
 // immediately after installation.
 // ---------------------------------------------------------------------------
-const DEFAULT_CATEGORIES = [
-  'General',
-  'Technology',
-  'Sports',
-  'Science',
-];
+const DEFAULT_CATEGORIES = ['General', 'Technology', 'Sports', 'Science'];
 
 // ---------------------------------------------------------------------------
 // Seed function
@@ -53,11 +48,10 @@ function seed() {
 if (require.main === module) {
   try {
     seed();
-    // eslint-disable-next-line no-console
+
     console.log('Seed complete.');
     process.exit(0);
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Seed failed:', err);
     process.exit(1);
   }

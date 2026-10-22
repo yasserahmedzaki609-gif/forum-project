@@ -15,9 +15,13 @@ describe('P24 — Conditional Moderation Adapter', () => {
     userA = request.agent(app);
     const { token: ta } = await getCsrfFor(userA);
     tokenA = ta;
-    await userA.post('/register').set('x-csrf-token', tokenA)
+    await userA
+      .post('/register')
+      .set('x-csrf-token', tokenA)
       .send({ username: 'moduser', email: 'mod@e.com', password: 'longpassword' });
-    await userA.post('/login').set('x-csrf-token', tokenA)
+    await userA
+      .post('/login')
+      .set('x-csrf-token', tokenA)
       .send({ username: 'moduser', password: 'longpassword' });
   });
 
@@ -37,7 +41,9 @@ describe('P24 — Conditional Moderation Adapter', () => {
   });
 
   test('P24-D: new post via API is created as "pending"', async () => {
-    const res = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const res = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Pending by default', content: 'Body', categoryIds: [1] });
     expect(res.status).toBe(201);
     const postId = res.body.id;
@@ -49,19 +55,23 @@ describe('P24 — Conditional Moderation Adapter', () => {
 
   test('P24-E: pending post is hidden from public feed', async () => {
     // Create a pending post
-    const create = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const create = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Hidden pending post', content: 'Body', categoryIds: [1] });
     const postId = create.body.id;
 
     // Public feed should NOT include it
     const list = await request(app).get('/api/posts');
     expect(list.status).toBe(200);
-    const found = list.body.data.find(p => p.id === postId);
+    const found = list.body.data.find((p) => p.id === postId);
     expect(found).toBeUndefined();
   });
 
   test('P24-F: owner can see their own pending post', async () => {
-    const create = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const create = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Owner sees this', content: 'Body', categoryIds: [1] });
     const postId = create.body.id;
 
@@ -73,7 +83,9 @@ describe('P24 — Conditional Moderation Adapter', () => {
   });
 
   test('P24-G: non-owner cannot see a pending post via /api/posts/:id', async () => {
-    const create = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const create = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Hidden from others', content: 'Body', categoryIds: [1] });
     const postId = create.body.id;
 
@@ -83,18 +95,22 @@ describe('P24 — Conditional Moderation Adapter', () => {
   });
 
   test('P24-H: pending posts appear in the moderation queue', async () => {
-    const create = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const create = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Queue test', content: 'Body', categoryIds: [1] });
     const postId = create.body.id;
 
     // UserA is first user = admin, so can list the queue
     const res = await userA.get('/api/moderation/queue');
     expect(res.status).toBe(200);
-    expect(res.body.posts.some(p => p.id === postId)).toBe(true);
+    expect(res.body.posts.some((p) => p.id === postId)).toBe(true);
   });
 
   test('P24-I: approving a pending post makes it visible', async () => {
-    const create = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const create = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Approve me', content: 'Body', categoryIds: [1] });
     const postId = create.body.id;
 
@@ -107,12 +123,14 @@ describe('P24 — Conditional Moderation Adapter', () => {
 
     // Now visible in public feed
     const list = await request(app).get('/api/posts');
-    expect(list.body.data.some(p => p.id === postId)).toBe(true);
+    expect(list.body.data.some((p) => p.id === postId)).toBe(true);
   });
 
   test('P24-J: comments are also pending by default', async () => {
     // Create + approve a post first
-    const create = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const create = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Comment target', content: 'Body', categoryIds: [1] });
     const postId = create.body.id;
     await userA
@@ -121,7 +139,8 @@ describe('P24 — Conditional Moderation Adapter', () => {
       .send({ status: 'approved' });
 
     // Add a comment
-    const c = await userA.post(`/api/posts/${postId}/comments`)
+    const c = await userA
+      .post(`/api/posts/${postId}/comments`)
       .set('x-csrf-token', tokenA)
       .send({ content: 'pending comment' });
     expect(c.status).toBe(201);

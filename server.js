@@ -36,10 +36,10 @@ async function ensureCertificates() {
 
   const attrs = [
     { name: 'CN', value: commonName },
-    { name: 'C',  value: country },
+    { name: 'C', value: country },
     { name: 'ST', value: state },
-    { name: 'L',  value: locality },
-    { name: 'O',  value: org },
+    { name: 'L', value: locality },
+    { name: 'O', value: org },
   ];
 
   const pems = await selfsigned.generate(attrs, {
@@ -109,15 +109,15 @@ async function bootstrap() {
     // Mozilla Intermediate cipher suites (TLS 1.2 + 1.3)
     // Node.js uses OpenSSL names, not IANA names.
     ciphers: [
-      'TLS_AES_128_GCM_SHA256',           // TLS 1.3
-      'TLS_AES_256_GCM_SHA384',           // TLS 1.3
-      'TLS_CHACHA20_POLY1305_SHA256',     // TLS 1.3
-      'ECDHE-ECDSA-AES128-GCM-SHA256',    // TLS 1.2
-      'ECDHE-RSA-AES128-GCM-SHA256',      // TLS 1.2
-      'ECDHE-ECDSA-AES256-GCM-SHA384',    // TLS 1.2
-      'ECDHE-RSA-AES256-GCM-SHA384',      // TLS 1.2
-      'ECDHE-ECDSA-CHACHA20-POLY1305',    // TLS 1.2
-      'ECDHE-RSA-CHACHA20-POLY1305',      // TLS 1.2
+      'TLS_AES_128_GCM_SHA256', // TLS 1.3
+      'TLS_AES_256_GCM_SHA384', // TLS 1.3
+      'TLS_CHACHA20_POLY1305_SHA256', // TLS 1.3
+      'ECDHE-ECDSA-AES128-GCM-SHA256', // TLS 1.2
+      'ECDHE-RSA-AES128-GCM-SHA256', // TLS 1.2
+      'ECDHE-ECDSA-AES256-GCM-SHA384', // TLS 1.2
+      'ECDHE-RSA-AES256-GCM-SHA384', // TLS 1.2
+      'ECDHE-ECDSA-CHACHA20-POLY1305', // TLS 1.2
+      'ECDHE-RSA-CHACHA20-POLY1305', // TLS 1.2
     ].join(':'),
 
     // ECDHE curve preference (X25519 first — faster than P-256)

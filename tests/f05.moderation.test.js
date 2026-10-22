@@ -17,10 +17,12 @@ describe('F05 — Moderation', () => {
     adminAgent = request.agent(app);
     const { token: aT } = await getCsrfFor(adminAgent);
     adminToken = aT;
-    await adminAgent.post('/register')
+    await adminAgent
+      .post('/register')
       .set('x-csrf-token', adminToken)
       .send({ username: 'admin', email: 'admin@e.com', password: 'longpassword' });
-    await adminAgent.post('/login')
+    await adminAgent
+      .post('/login')
       .set('x-csrf-token', adminToken)
       .send({ username: 'admin', password: 'longpassword' });
 
@@ -28,10 +30,12 @@ describe('F05 — Moderation', () => {
     userAgent = request.agent(app);
     const { token: uT } = await getCsrfFor(userAgent);
     userToken = uT;
-    await userAgent.post('/register')
+    await userAgent
+      .post('/register')
       .set('x-csrf-token', userToken)
       .send({ username: 'user1', email: 'user1@e.com', password: 'longpassword' });
-    await userAgent.post('/login')
+    await userAgent
+      .post('/login')
       .set('x-csrf-token', userToken)
       .send({ username: 'user1', password: 'longpassword' });
   });
@@ -53,7 +57,8 @@ describe('F05 — Moderation', () => {
     const db = require('../src/database/db');
     const u = db.prepare('SELECT id FROM users WHERE username = ?').get('user1');
 
-    const res = await adminAgent.patch(`/api/users/${u.id}/role`)
+    const res = await adminAgent
+      .patch(`/api/users/${u.id}/role`)
       .set('x-csrf-token', adminToken)
       .send({ role: 'moderator' });
     expect(res.status).toBe(200);
@@ -73,16 +78,17 @@ describe('F05 — Moderation', () => {
     const db = require('../src/database/db');
     const postModel = require('../src/models/post.model');
     const u = db.prepare('SELECT id FROM users WHERE username = ?').get('user1');
-    
+
     // Create a post with 'pending' status
     const postId = postModel.create(u.id, 'Pending title', 'Pending content', [1], 'pending');
 
     // Queue contains it
     const q1 = await userAgent.get('/api/moderation/queue');
-    expect(q1.body.posts.some(p => p.id === postId)).toBe(true);
+    expect(q1.body.posts.some((p) => p.id === postId)).toBe(true);
 
     // Approve it
-    const res = await userAgent.patch(`/api/moderation/posts/${postId}/status`)
+    const res = await userAgent
+      .patch(`/api/moderation/posts/${postId}/status`)
       .set('x-csrf-token', userToken)
       .send({ status: 'approved' });
     expect(res.status).toBe(200);
@@ -94,9 +100,10 @@ describe('F05 — Moderation', () => {
   test('user creates report, moderator resolves it', async () => {
     const db = require('../src/database/db');
     const post = db.prepare('SELECT id FROM posts LIMIT 1').get();
-    
+
     // Create
-    const createRes = await userAgent.post('/api/reports')
+    const createRes = await userAgent
+      .post('/api/reports')
       .set('x-csrf-token', userToken)
       .send({ targetType: 'post', targetId: post.id, reason: 'Spam' });
     expect(createRes.status).toBe(201);
@@ -105,14 +112,15 @@ describe('F05 — Moderation', () => {
     // List
     const listRes = await userAgent.get('/api/moderation/reports');
     expect(listRes.status).toBe(200);
-    expect(listRes.body.some(r => r.id === reportId)).toBe(true);
+    expect(listRes.body.some((r) => r.id === reportId)).toBe(true);
 
     // Resolve
-    const resolveRes = await userAgent.patch(`/api/moderation/reports/${reportId}`)
+    const resolveRes = await userAgent
+      .patch(`/api/moderation/reports/${reportId}`)
       .set('x-csrf-token', userToken)
       .send({ status: 'resolved' });
     expect(resolveRes.status).toBe(200);
-    
+
     const r = db.prepare('SELECT status FROM reports WHERE id = ?').get(reportId);
     expect(r.status).toBe('resolved');
   });

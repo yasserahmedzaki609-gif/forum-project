@@ -96,7 +96,7 @@ async function checkSession() {
 
     notifBell.classList.remove('hidden');
     activitySection.classList.remove('hidden');
-    
+
     // تحميل البيانات المتعلقة بالمستخدم بالتسلسل
     loadNotifications();
     loadActivity();
@@ -137,11 +137,11 @@ async function checkSession() {
     notifDropdown.classList.add('hidden');
     activitySection.classList.add('hidden');
     document.querySelectorAll('.user-only').forEach((el) => el.classList.add('hidden'));
-    
+
     // إخفاء قسم الحسابات المرتبطة عند الخروج
     const connectedSection = document.getElementById('connected-accounts-section');
     if (connectedSection) connectedSection.classList.add('hidden');
-    
+
     // D2: إخفاء قسم إدارة التصنيفات عند الخروج
     document.getElementById('admin-categories-section')?.classList.add('hidden');
 
@@ -158,18 +158,18 @@ async function checkSession() {
 // Auth
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('login-btn').addEventListener('click', (e) =>
-    withLoading(e.currentTarget, login)
-  );
-  document.getElementById('register-btn').addEventListener('click', (e) =>
-    withLoading(e.currentTarget, register)
-  );
-  document.getElementById('logout-btn').addEventListener('click', (e) =>
-    withLoading(e.currentTarget, logout)
-  );
-  document.getElementById('create-post-btn').addEventListener('click', (e) =>
-    withLoading(e.currentTarget, createPost)
-  );
+  document
+    .getElementById('login-btn')
+    .addEventListener('click', (e) => withLoading(e.currentTarget, login));
+  document
+    .getElementById('register-btn')
+    .addEventListener('click', (e) => withLoading(e.currentTarget, register));
+  document
+    .getElementById('logout-btn')
+    .addEventListener('click', (e) => withLoading(e.currentTarget, logout));
+  document
+    .getElementById('create-post-btn')
+    .addEventListener('click', (e) => withLoading(e.currentTarget, createPost));
 
   document.getElementById('filter-all')?.addEventListener('click', () => {
     state.filter = { type: 'all' };
@@ -320,19 +320,27 @@ async function loadPosts() {
       <div class="meta">By ${escapeHtml(post.author)} | ${escapeHtml(new Date(post.created_at).toLocaleString())}</div>
       <p>${escapeHtml(post.content)}</p>
       <div class="categories">Categories: ${escapeHtml((post.categories || []).join(', ') || 'General')}</div>
-      ${isOwner ? `
+      ${
+        isOwner
+          ? `
         <div class="post-actions">
           <button type="button" class="btn-edit-post" data-edit-post="${post.id}">Edit</button>
           <button type="button" class="btn-delete-post" data-delete-post="${post.id}">Delete</button>
           <button type="button" class="btn-add-image" data-add-image="${post.id}">Add Image</button>
           <input type="file" id="add-image-${post.id}" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;" data-add-image-input="${post.id}" />
         </div>
-      ` : ''}
-      ${isOther ? `
+      `
+          : ''
+      }
+      ${
+        isOther
+          ? `
         <div class="post-actions">
           <button type="button" class="btn-report-post" data-report-post="${post.id}" style="background: #e74c3c;">Report</button>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       <div id="media-${post.id}" class="post-media"></div>
       <div class="likes-section">
         <button type="button" class="like-btn" data-action="like" data-post="${post.id}">Like (${post.likes_count || 0})</button>
@@ -341,10 +349,14 @@ async function loadPosts() {
       <button type="button" class="comments-toggle-btn" data-toggle-comments="${post.id}">Comments (${post.comments_count || 0})</button>
       <div id="comments-section-${post.id}" class="comments-section" style="display:none;">
         <div id="comments-${post.id}"></div>
-        ${state.isLoggedIn ? `
+        ${
+          state.isLoggedIn
+            ? `
           <textarea id="comment-input-${post.id}" class="comment-input" placeholder="Write a comment..." rows="2" maxlength="2000"></textarea>
           <button type="button" class="add-comment-btn" data-add-comment="${post.id}">Add Comment</button>
-        ` : '<p style="color:#7f8c8d; font-size:.9em; text-align:center; margin-top:10px;">Login to comment</p>'}
+        `
+            : '<p style="color:#7f8c8d; font-size:.9em; text-align:center; margin-top:10px;">Login to comment</p>'
+        }
       </div>
     `;
     container.appendChild(div);
@@ -418,7 +430,10 @@ function renderPagination({ page, pageSize, total }) {
     b.type = 'button';
     b.textContent = String(i);
     if (i === page) b.classList.add('active');
-    b.addEventListener('click', () => { state.page = i; loadPosts(); });
+    b.addEventListener('click', () => {
+      state.page = i;
+      loadPosts();
+    });
     container.appendChild(b);
   }
 }
@@ -444,7 +459,9 @@ async function createPost() {
     setMessage('Post created successfully!');
     document.getElementById('post-title').value = '';
     document.getElementById('post-content').value = '';
-    document.querySelectorAll('#categories-container input:checked').forEach((c) => (c.checked = false));
+    document
+      .querySelectorAll('#categories-container input:checked')
+      .forEach((c) => (c.checked = false));
 
     const fileInput = document.getElementById('post-media');
     if (fileInput && fileInput.files.length > 0) {
@@ -473,13 +490,19 @@ async function createPost() {
 // ---------------------------------------------------------------------------
 async function reactToPost(postId, action) {
   const { ok, body } = await api(`/api/posts/${postId}/${action}`, { method: 'POST' });
-  if (!ok) { setMessage(body.error || 'Failed'); return; }
+  if (!ok) {
+    setMessage(body.error || 'Failed');
+    return;
+  }
   await loadPosts();
 }
 
 async function reactToComment(commentId, action, postId) {
   const { ok, body } = await api(`/api/comments/${commentId}/${action}`, { method: 'POST' });
-  if (!ok) { setMessage(body.error || 'Failed'); return; }
+  if (!ok) {
+    setMessage(body.error || 'Failed');
+    return;
+  }
   await loadComments(postId);
 }
 
@@ -506,7 +529,8 @@ async function loadComments(postId) {
     return;
   }
   if (body.length === 0) {
-    container.innerHTML = '<p style="color:#7f8c8d; font-size:.9em; text-align:center;">No comments yet.</p>';
+    container.innerHTML =
+      '<p style="color:#7f8c8d; font-size:.9em; text-align:center;">No comments yet.</p>';
     return;
   }
 
@@ -523,10 +547,14 @@ async function loadComments(postId) {
       <div class="likes-section">
         <button type="button" class="like-btn" data-caction="like" data-comment="${c.id}" data-post="${postId}">Like (${c.likes_count || 0})</button>
         <button type="button" class="dislike-btn" data-caction="dislike" data-comment="${c.id}" data-post="${postId}">Dislike (${c.dislikes_count || 0})</button>
-        ${isOwner ? `
+        ${
+          isOwner
+            ? `
           <button type="button" class="btn-edit-comment" data-edit-comment="${c.id}" data-post="${postId}" style="flex: 0; padding: 8px 12px; font-size: 12px; width: auto;">Edit</button>
           <button type="button" class="btn-delete-comment" data-delete-comment="${c.id}" data-post="${postId}" style="flex: 0; padding: 8px 12px; font-size: 12px; width: auto;">Delete</button>
-        ` : ''}
+        `
+            : ''
+        }
         ${isOther ? `<button type="button" class="btn-report-comment" data-report-comment="${c.id}" style="background: #e74c3c; flex: 0; padding: 8px 12px; font-size: 12px; width: auto;">Report</button>` : ''}
       </div>
     `;
@@ -535,7 +563,9 @@ async function loadComments(postId) {
 
   container.querySelectorAll('[data-caction]').forEach((btn) => {
     btn.addEventListener('click', (e) =>
-      withLoading(e.currentTarget, () => reactToComment(btn.dataset.comment, btn.dataset.caction, btn.dataset.post))
+      withLoading(e.currentTarget, () =>
+        reactToComment(btn.dataset.comment, btn.dataset.caction, btn.dataset.post)
+      )
     );
   });
 
@@ -562,8 +592,14 @@ async function loadComments(postId) {
 async function addComment(postId) {
   const input = document.getElementById(`comment-input-${postId}`);
   const content = input.value.trim();
-  if (!content) { setMessage('Comment cannot be empty.'); return; }
-  const { ok, body } = await api(`/api/posts/${postId}/comments`, { method: 'POST', body: { content } });
+  if (!content) {
+    setMessage('Comment cannot be empty.');
+    return;
+  }
+  const { ok, body } = await api(`/api/posts/${postId}/comments`, {
+    method: 'POST',
+    body: { content },
+  });
   if (ok) {
     input.value = '';
     await loadComments(postId);
@@ -646,7 +682,7 @@ function renderModList(elementId, items, type) {
     container.innerHTML = '<p style="color:#7f8c8d; font-size:.9em;">Nothing pending.</p>';
     return;
   }
-  items.forEach(item => {
+  items.forEach((item) => {
     const div = document.createElement('div');
     div.className = 'mod-card';
     const title = type === 'post' ? item.title : item.content;
@@ -658,8 +694,10 @@ function renderModList(elementId, items, type) {
         <button class="btn-reject" data-action="rejected">Reject</button>
       </div>
     `;
-    div.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', () => { updateModStatus(type, item.id, btn.dataset.action); });
+    div.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        updateModStatus(type, item.id, btn.dataset.action);
+      });
     });
     container.appendChild(div);
   });
@@ -682,7 +720,7 @@ function renderReports(reports) {
     container.innerHTML = '<p style="color:#7f8c8d; font-size:.9em;">No open reports.</p>';
     return;
   }
-  reports.forEach(r => {
+  reports.forEach((r) => {
     const div = document.createElement('div');
     div.className = 'mod-card';
     div.innerHTML = `
@@ -693,10 +731,11 @@ function renderReports(reports) {
         <button class="btn-reject" data-action="dismissed">Dismiss</button>
       </div>
     `;
-    div.querySelectorAll('button').forEach(btn => {
+    div.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const { ok } = await api(`/api/moderation/reports/${r.id}`, {
-          method: 'PATCH', body: { status: btn.dataset.action }
+          method: 'PATCH',
+          body: { status: btn.dataset.action },
         });
         if (ok) loadModerationDashboard();
       });
@@ -825,7 +864,7 @@ async function loadUsers() {
   }
 
   // Wire up role selects
-  container.querySelectorAll('.user-role-select').forEach(select => {
+  container.querySelectorAll('.user-role-select').forEach((select) => {
     select.addEventListener('change', async (e) => {
       const userId = parseInt(e.target.dataset.userId, 10);
       const previousRole = e.target.dataset.userRole;
@@ -833,9 +872,7 @@ async function loadUsers() {
 
       if (previousRole === newRole) return;
 
-      const confirmed = confirm(
-        `Change user's role from "${previousRole}" to "${newRole}"?`
-      );
+      const confirmed = confirm(`Change user's role from "${previousRole}" to "${newRole}"?`);
       if (!confirmed) {
         e.target.value = previousRole; // revert
         return;
@@ -864,7 +901,7 @@ async function loadUsers() {
 async function loadNotifications() {
   const { ok, body } = await api('/api/notifications');
   if (!ok) return;
-  const unread = body.filter(n => !n.is_read).length;
+  const unread = body.filter((n) => !n.is_read).length;
   const badge = document.getElementById('notif-badge');
   if (unread > 0) {
     badge.textContent = unread;
@@ -873,11 +910,10 @@ async function loadNotifications() {
     badge.classList.add('hidden');
   }
   const list = document.getElementById('notif-list');
-  list.innerHTML = body.length === 0
-    ? '<p style="color:#7f8c8d; font-size:.9em;">No notifications yet.</p>'
-    : '';
+  list.innerHTML =
+    body.length === 0 ? '<p style="color:#7f8c8d; font-size:.9em;">No notifications yet.</p>' : '';
   const icons = { like: '👍', comment: '💬', reply: '↩️' };
-  body.forEach(n => {
+  body.forEach((n) => {
     const div = document.createElement('div');
     div.className = `notif-item ${n.is_read ? '' : 'unread'}`;
     div.innerHTML = `
@@ -902,7 +938,7 @@ async function openEditModal(postId) {
   if (!ok) {
     const listRes = await api('/api/posts?page=1&pageSize=100');
     if (!listRes.ok) return;
-    editingPost = listRes.body.data.find(p => p.id === parseInt(postId, 10));
+    editingPost = listRes.body.data.find((p) => p.id === parseInt(postId, 10));
   } else {
     editingPost = body;
   }
@@ -914,7 +950,7 @@ async function openEditModal(postId) {
   catContainer.innerHTML = '<p style="margin-bottom:5px;">Categories:</p>';
   const catRes = await api('/api/categories');
   if (catRes.ok) {
-    catRes.body.forEach(cat => {
+    catRes.body.forEach((cat) => {
       const label = document.createElement('label');
       label.className = 'category-checkbox';
       const checked = editingPost.categories.includes(cat.name) ? 'checked' : '';
@@ -931,10 +967,10 @@ async function saveEdit() {
   const content = document.getElementById('edit-content').value.trim();
   const categoryIds = Array.from(
     document.querySelectorAll('#edit-categories-container input:checked')
-  ).map(cb => parseInt(cb.value, 10));
+  ).map((cb) => parseInt(cb.value, 10));
   const { ok, body } = await api(`/api/posts/${editingPost.id}`, {
     method: 'PUT',
-    body: { title, content, categoryIds, updatedAt: editingPost.updated_at }
+    body: { title, content, categoryIds, updatedAt: editingPost.updated_at },
   });
   if (ok) {
     document.getElementById('edit-modal').classList.add('hidden');
@@ -948,8 +984,12 @@ async function saveEdit() {
 async function deletePost(postId) {
   if (!confirm('Delete this post? This cannot be undone.')) return;
   const { ok, body } = await api(`/api/posts/${postId}`, { method: 'DELETE' });
-  if (ok) { setMessage('Post deleted'); await loadPosts(); }
-  else { alert(body.error || 'Failed to delete'); }
+  if (ok) {
+    setMessage('Post deleted');
+    await loadPosts();
+  } else {
+    alert(body.error || 'Failed to delete');
+  }
 }
 
 // --- F05: Report Content Modal ---
@@ -991,9 +1031,18 @@ async function submitPasswordChange() {
   const currentPassword = document.getElementById('current-password').value;
   const newPassword = document.getElementById('new-password').value;
   const errorEl = document.getElementById('password-error');
-  if (!currentPassword || !newPassword) { errorEl.textContent = 'All fields are required'; return; }
-  if (newPassword.length < 8 || newPassword.length > 72) { errorEl.textContent = 'New password must be 8-72 characters'; return; }
-  if (currentPassword === newPassword) { errorEl.textContent = 'New password must differ from the current one'; return; }
+  if (!currentPassword || !newPassword) {
+    errorEl.textContent = 'All fields are required';
+    return;
+  }
+  if (newPassword.length < 8 || newPassword.length > 72) {
+    errorEl.textContent = 'New password must be 8-72 characters';
+    return;
+  }
+  if (currentPassword === newPassword) {
+    errorEl.textContent = 'New password must differ from the current one';
+    return;
+  }
   const { ok, body } = await api('/api/users/me/password', {
     method: 'POST',
     body: { currentPassword, newPassword },
@@ -1020,7 +1069,7 @@ async function loadActivity() {
     post_edit: '✏️ Edited a post',
     comment_edit: '✏️ Edited a comment',
   };
-  body.forEach(a => {
+  body.forEach((a) => {
     const div = document.createElement('div');
     div.className = 'activity-item';
     div.innerHTML = `
@@ -1071,7 +1120,8 @@ async function loadConnectedAccounts() {
   }
 
   if (!body.canUnlink) {
-    hint.textContent = 'You have no password set, so you cannot unlink your only provider. Set a password first.';
+    hint.textContent =
+      'You have no password set, so you cannot unlink your only provider. Set a password first.';
     hint.classList.remove('hidden');
   } else {
     hint.classList.add('hidden');
@@ -1079,7 +1129,8 @@ async function loadConnectedAccounts() {
 }
 
 async function unlinkIdentity(provider) {
-  if (!confirm(`Unlink ${provider} from your account? You will need to use another login method.`)) return;
+  if (!confirm(`Unlink ${provider} from your account? You will need to use another login method.`))
+    return;
   const { ok, body } = await api(`/api/users/me/identities/${provider}`, { method: 'DELETE' });
   if (ok) {
     setMessage(`${provider} unlinked successfully.`);
@@ -1097,10 +1148,16 @@ async function unlinkIdentity(provider) {
 async function openCommentEditModal(commentId, postId) {
   // Fetch current comment data
   const res = await api(`/api/posts/${postId}/comments`);
-  if (!res.ok) { setMessage('Failed to load comments'); return; }
+  if (!res.ok) {
+    setMessage('Failed to load comments');
+    return;
+  }
 
-  const comment = res.body.find(c => c.id === parseInt(commentId, 10));
-  if (!comment) { setMessage('Comment not found'); return; }
+  const comment = res.body.find((c) => c.id === parseInt(commentId, 10));
+  if (!comment) {
+    setMessage('Comment not found');
+    return;
+  }
 
   editingComment = { id: comment.id, postId: parseInt(postId, 10), updatedAt: comment.updated_at };
   document.getElementById('comment-edit-content').value = comment.content;
@@ -1113,8 +1170,14 @@ async function saveCommentEdit() {
   const content = document.getElementById('comment-edit-content').value.trim();
   const errorEl = document.getElementById('comment-edit-error');
 
-  if (!content) { errorEl.textContent = 'Content cannot be empty'; return; }
-  if (content.length > 2000) { errorEl.textContent = 'Content must be at most 2000 characters'; return; }
+  if (!content) {
+    errorEl.textContent = 'Content cannot be empty';
+    return;
+  }
+  if (content.length > 2000) {
+    errorEl.textContent = 'Content must be at most 2000 characters';
+    return;
+  }
 
   const res = await api(`/api/comments/${editingComment.id}`, {
     method: 'PUT',
@@ -1157,24 +1220,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dd.classList.contains('hidden')) loadNotifications();
   });
 
-  document.getElementById('edit-save-btn')?.addEventListener('click', (e) =>
-    withLoading(e.currentTarget, saveEdit));
+  document
+    .getElementById('edit-save-btn')
+    ?.addEventListener('click', (e) => withLoading(e.currentTarget, saveEdit));
   document.getElementById('edit-cancel-btn')?.addEventListener('click', () => {
     document.getElementById('edit-modal').classList.add('hidden');
     editingPost = null;
   });
 
   // D1: Comment edit modal handlers
-  document.getElementById('comment-edit-save-btn')?.addEventListener('click', (e) =>
-    withLoading(e.currentTarget, saveCommentEdit));
+  document
+    .getElementById('comment-edit-save-btn')
+    ?.addEventListener('click', (e) => withLoading(e.currentTarget, saveCommentEdit));
   document.getElementById('comment-edit-cancel-btn')?.addEventListener('click', () => {
     document.getElementById('comment-edit-modal').classList.add('hidden');
     editingComment = null;
   });
 
   // D2: Admin categories handlers
-  document.getElementById('add-category-btn')?.addEventListener('click', (e) =>
-    withLoading(e.currentTarget, addCategory));
+  document
+    .getElementById('add-category-btn')
+    ?.addEventListener('click', (e) => withLoading(e.currentTarget, addCategory));
   document.getElementById('new-category-name')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -1193,11 +1259,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('current-password').value = '';
     document.getElementById('new-password').value = '';
   });
-  document.getElementById('save-password-btn')?.addEventListener('click', (e) =>
-    withLoading(e.currentTarget, submitPasswordChange));
+  document
+    .getElementById('save-password-btn')
+    ?.addEventListener('click', (e) => withLoading(e.currentTarget, submitPasswordChange));
 
-  document.getElementById('report-submit-btn')?.addEventListener('click', (e) =>
-    withLoading(e.currentTarget, submitReport));
+  document
+    .getElementById('report-submit-btn')
+    ?.addEventListener('click', (e) => withLoading(e.currentTarget, submitReport));
   document.getElementById('report-cancel-btn')?.addEventListener('click', closeReportModal);
 
   setInterval(() => {

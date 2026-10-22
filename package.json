@@ -4,6 +4,9 @@
   "description": "Full-stack forum (F01–F06) - Node.js + SQLite + HTTPS + SSO + Verified Media + Encrypted DB",
   "main": "server.js",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
@@ -14,6 +17,11 @@
     "db:observatory": "node scripts/index-observatory.js",
     "media:cleanup": "node scripts/cleanup-media.js",
     "media:seed-demo": "node scripts/seed-demo-media.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,css,html}\"",
+    "format:check": "prettier --check \"**/*.{js,json,css,html}\"",
+    "verify": "npm run lint && npm test && npm audit --audit-level=high",
     "test": "jest --runInBand --detectOpenHandles",
     "test:coverage": "jest --coverage --runInBand"
   },
@@ -45,7 +53,12 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-node": "^11.1.0",
+    "globals": "^15.15.0",
     "jest": "^30.0.0",
+    "prettier": "^3.9.10",
     "supertest": "^7.0.0"
   },
   "overrides": {

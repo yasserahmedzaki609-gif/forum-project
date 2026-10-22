@@ -38,7 +38,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '001_users',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
@@ -54,7 +55,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '002_sessions',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL,
@@ -72,7 +74,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '003_categories',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE NOT NULL
@@ -85,7 +88,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '004_posts',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS posts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
@@ -104,7 +108,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '005_post_categories',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS post_categories (
         post_id INTEGER NOT NULL,
         category_id INTEGER NOT NULL,
@@ -120,7 +125,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '006_comments',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS comments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         content TEXT NOT NULL,
@@ -139,7 +145,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '007_reactions',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS reactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -159,7 +166,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '008_identities',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS identities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -182,7 +190,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '009_oauth_states',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS oauth_states (
         state TEXT PRIMARY KEY,
         code_verifier TEXT NOT NULL,
@@ -202,7 +211,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '010_media',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS media (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -230,7 +240,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '011_session_security',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       ALTER TABLE sessions ADD COLUMN last_seen_at TEXT;
       ALTER TABLE sessions ADD COLUMN user_agent_hash TEXT;
 
@@ -246,7 +257,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '012_moderation',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'
         CHECK(role IN ('user', 'moderator', 'admin'));
 
@@ -282,7 +294,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '013_advanced_features',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       -- 1. Add updated_at to posts and comments
       ALTER TABLE posts ADD COLUMN updated_at DATETIME;
       UPDATE posts SET updated_at = strftime('%Y-%m-%d %H:%M:%f', created_at) WHERE updated_at IS NULL;
@@ -338,7 +351,8 @@ const migrations = [
   // -------------------------------------------------------------------------
   {
     name: '014_role_requests',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS role_requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -370,14 +384,15 @@ const migrations = [
   // metadata is a free-form JSON string for action-specific details
   // (e.g. {"previous_status":"pending","new_status":"approved"}).
   //
-  // ⚠️ Architectural Note: actor_id is INTEGER (nullable) to allow 
-  // ON DELETE SET NULL. If an admin account is deleted, the log record 
-  // remains for audit purposes with actor_id = NULL. This is the correct 
+  // ⚠️ Architectural Note: actor_id is INTEGER (nullable) to allow
+  // ON DELETE SET NULL. If an admin account is deleted, the log record
+  // remains for audit purposes with actor_id = NULL. This is the correct
   // design decision for immutability and prevents constraint violations.
   // -------------------------------------------------------------------------
   {
     name: '015_moderation_logs',
-    up: () => db.exec(`
+    up: () =>
+      db.exec(`
       CREATE TABLE IF NOT EXISTS moderation_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         actor_id INTEGER,
@@ -404,7 +419,10 @@ const migrations = [
 // ---------------------------------------------------------------------------
 function runMigrations() {
   const applied = new Set(
-    db.prepare('SELECT name FROM schema_migrations').all().map((r) => r.name)
+    db
+      .prepare('SELECT name FROM schema_migrations')
+      .all()
+      .map((r) => r.name)
   );
 
   for (const m of migrations) {

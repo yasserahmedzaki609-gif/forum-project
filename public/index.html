@@ -1,204 +1,302 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="csrf-token" content="" id="csrf-meta" />
-  <title>Forum</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-  <div class="container">
-    <h1>Forum</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="" id="csrf-meta" />
+    <title>Forum</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Forum</h1>
 
-    <!-- F06: Notification Bell -->
-    <div id="notif-bell" class="hidden" style="position: relative; float: right; cursor: pointer; font-size: 24px;">
-      🔔 <span id="notif-badge" class="notif-badge hidden">0</span>
-      <div id="notif-dropdown" class="notif-dropdown hidden">
-        <h4 style="margin: 0 0 10px 0;">Notifications</h4>
-        <div id="notif-list">Loading...</div>
-      </div>
-    </div>
-    <div style="clear: both;"></div>
-
-    <div id="user-status" class="status-box">Checking session...</div>
-
-    <!-- Auth forms -->
-    <div id="auth-forms" class="hidden">
-      <div class="form-box">
-        <h3>Login</h3>
-        <input type="text" id="login-username" placeholder="Username" autocomplete="username" />
-        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" />
-        <button id="login-btn" type="button">Login</button>
-      </div>
-
-      <div class="form-box">
-        <h3>Register</h3>
-        <input type="email" id="reg-email" placeholder="Email" autocomplete="email" />
-        <input type="text" id="reg-username" placeholder="Username" autocomplete="username" />
-        <input type="password" id="reg-password" placeholder="Password (min 8)" autocomplete="new-password" />
-        <button id="register-btn" type="button">Register</button>
-      </div>
-
-      <div class="form-box">
-        <h3>Or continue with</h3>
-        <div id="sso-buttons" class="sso-buttons">
-          <button type="button" class="sso-btn sso-google" data-provider="google" hidden>Sign in with Google</button>
-          <button type="button" class="sso-btn sso-github" data-provider="github" hidden>Sign in with GitHub</button>
-        </div>
-        <p id="sso-hint" class="sso-hint hidden">SSO is not configured on this server.</p>
-      </div>
-    </div>
-
-    <!-- Logged-in actions -->
-    <div id="user-actions" class="hidden">
-      <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 20px;">
-        <button id="logout-btn" class="logout-btn" type="button" style="margin: 0; flex: 1; width: auto;">Logout</button>
-        <button id="change-password-btn" type="button" style="background: #f39c12; margin: 0; flex: 1; width: auto;">Change Password</button>
-      </div>
-
-      <!-- C3: Connected Accounts -->
-      <div id="connected-accounts-section" class="hidden" style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 6px;">
-        <h3 style="margin-top: 0; font-size: 1.1em; color: #333;">Connected Accounts</h3>
-        <p id="connected-accounts-hint" class="sso-hint hidden" style="margin-bottom: 10px; font-size: 0.9em;"></p>
-        <div id="connected-accounts-list" style="display: flex; flex-direction: column; gap: 8px;">Loading...</div>
-      </div>
-
-      <div id="create-post-section" style="margin-top: 20px;">
-        <h3>Create New Post</h3>
-        <input type="text" id="post-title" placeholder="Post Title" maxlength="150" />
-        <textarea id="post-content" placeholder="Post Content" rows="4" maxlength="5000"></textarea>
-        <div class="media-upload">
-          <input type="file" id="post-media" accept="image/jpeg,image/png,image/webp,image/gif" />
-          <p id="media-upload-error" class="media-upload-error"></p>
-        </div>
-        <div id="categories-container"></div>
-        <button id="create-post-btn" type="button">Publish Post</button>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div id="filter-section">
-      <h3>Filter Posts</h3>
-      <div class="filter-buttons">
-        <button type="button" id="filter-all" class="filter-btn active">All Posts</button>
-        <button type="button" id="filter-my-posts" class="filter-btn user-only hidden">My Posts</button>
-        <button type="button" id="filter-my-likes" class="filter-btn user-only hidden">My Likes</button>
-      </div>
-      <div class="filter-categories">
-        <p style="margin-bottom:5px; font-weight:bold;">By Category:</p>
-        <div id="filter-categories-container"></div>
-      </div>
-    </div>
-
-    <!-- Posts feed -->
-    <div id="posts-container">
-      <h3>Recent Posts</h3>
-      <div id="posts-list">Loading posts...</div>
-      <div id="pagination" class="pagination"></div>
-    </div>
-
-    <!-- Moderation Dashboard -->
-    <div id="moderation-section" class="hidden">
-      <h3 style="color: #e67e22;">Moderation Dashboard</h3>
-      <div class="mod-grid">
-        <div>
-          <h4>Pending Posts</h4>
-          <div id="mod-queue-posts">Loading...</div>
-        </div>
-        <div>
-          <h4>Pending Comments</h4>
-          <div id="mod-queue-comments">Loading...</div>
+      <!-- F06: Notification Bell -->
+      <div
+        id="notif-bell"
+        class="hidden"
+        style="position: relative; float: right; cursor: pointer; font-size: 24px"
+      >
+        🔔 <span id="notif-badge" class="notif-badge hidden">0</span>
+        <div id="notif-dropdown" class="notif-dropdown hidden">
+          <h4 style="margin: 0 0 10px 0">Notifications</h4>
+          <div id="notif-list">Loading...</div>
         </div>
       </div>
-      <h4>Open Reports</h4>
-      <div id="mod-reports">Loading...</div>
+      <div style="clear: both"></div>
 
-      <!-- D2: Admin Categories Management -->
-      <div id="admin-categories-section" class="hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e67e22;">
-        <h4>Manage Categories (Admin)</h4>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-          <input type="text" id="new-category-name" placeholder="New category name (2-50 chars)" maxlength="50" style="flex: 1; margin: 0;" />
-          <button id="add-category-btn" type="button" style="flex: 0; padding: 10px 20px; margin: 0; white-space: nowrap;">Add Category</button>
+      <div id="user-status" class="status-box">Checking session...</div>
+
+      <!-- Auth forms -->
+      <div id="auth-forms" class="hidden">
+        <div class="form-box">
+          <h3>Login</h3>
+          <input type="text" id="login-username" placeholder="Username" autocomplete="username" />
+          <input
+            type="password"
+            id="login-password"
+            placeholder="Password"
+            autocomplete="current-password"
+          />
+          <button id="login-btn" type="button">Login</button>
         </div>
-        <p id="category-error" class="message" style="margin: 5px 0;"></p>
-        <div id="categories-admin-list">Loading...</div>
-      </div>
 
-      <!-- D3: Admin User Management -->
-      <div id="admin-users-section" class="hidden" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e67e22;">
-        <h4>Manage Users (Admin)</h4>
-        <p style="color: #7f8c8d; font-size: 0.9em; margin: 5px 0 10px 0;">Promote/demote user roles. Be careful with admin changes.</p>
-        <div id="users-admin-list">Loading...</div>
-        <p id="user-management-error" class="message" style="margin: 5px 0;"></p>
-      </div>
-    </div>
-
-    <!-- Edit Post Modal -->
-    <div id="edit-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Edit Post</h3>
-        <input type="text" id="edit-title" placeholder="Title" maxlength="150">
-        <textarea id="edit-content" placeholder="Content" rows="4" maxlength="5000"></textarea>
-        <div id="edit-categories-container"></div>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button id="edit-save-btn" type="button" style="background: #27ae60;">Save</button>
-          <button id="edit-cancel-btn" type="button" style="background: #95a5a6;">Cancel</button>
+        <div class="form-box">
+          <h3>Register</h3>
+          <input type="email" id="reg-email" placeholder="Email" autocomplete="email" />
+          <input type="text" id="reg-username" placeholder="Username" autocomplete="username" />
+          <input
+            type="password"
+            id="reg-password"
+            placeholder="Password (min 8)"
+            autocomplete="new-password"
+          />
+          <button id="register-btn" type="button">Register</button>
         </div>
-        <p id="edit-error" class="message"></p>
-      </div>
-    </div>
 
-    <!-- F04: Change Password Modal -->
-    <div id="password-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Change Password</h3>
-        <input type="password" id="current-password" placeholder="Current Password" autocomplete="current-password" />
-        <input type="password" id="new-password" placeholder="New Password (min 8)" autocomplete="new-password" />
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button id="save-password-btn" type="button" style="background: #27ae60;">Save</button>
-          <button id="cancel-password-btn" type="button" style="background: #95a5a6;">Cancel</button>
+        <div class="form-box">
+          <h3>Or continue with</h3>
+          <div id="sso-buttons" class="sso-buttons">
+            <button type="button" class="sso-btn sso-google" data-provider="google" hidden>
+              Sign in with Google
+            </button>
+            <button type="button" class="sso-btn sso-github" data-provider="github" hidden>
+              Sign in with GitHub
+            </button>
+          </div>
+          <p id="sso-hint" class="sso-hint hidden">SSO is not configured on this server.</p>
         </div>
-        <p id="password-error" class="message"></p>
       </div>
-    </div>
 
-    <!-- F05: Report Modal -->
-    <div id="report-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Report Content</h3>
-        <textarea id="report-reason" placeholder="Why are you reporting this? (min 3 chars)" rows="3" maxlength="500"></textarea>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button id="report-submit-btn" type="button" style="background: #e74c3c;">Report</button>
-          <button id="report-cancel-btn" type="button" style="background: #95a5a6;">Cancel</button>
+      <!-- Logged-in actions -->
+      <div id="user-actions" class="hidden">
+        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 20px">
+          <button
+            id="logout-btn"
+            class="logout-btn"
+            type="button"
+            style="margin: 0; flex: 1; width: auto"
+          >
+            Logout
+          </button>
+          <button
+            id="change-password-btn"
+            type="button"
+            style="background: #f39c12; margin: 0; flex: 1; width: auto"
+          >
+            Change Password
+          </button>
         </div>
-        <p id="report-error" class="message"></p>
-      </div>
-    </div>
 
-    <!-- D1: Comment Edit Modal -->
-    <div id="comment-edit-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Edit Comment</h3>
-        <textarea id="comment-edit-content" placeholder="Comment content" rows="4" maxlength="2000"></textarea>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button id="comment-edit-save-btn" type="button" style="background: #27ae60;">Save</button>
-          <button id="comment-edit-cancel-btn" type="button" style="background: #95a5a6;">Cancel</button>
+        <!-- C3: Connected Accounts -->
+        <div
+          id="connected-accounts-section"
+          class="hidden"
+          style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 6px"
+        >
+          <h3 style="margin-top: 0; font-size: 1.1em; color: #333">Connected Accounts</h3>
+          <p
+            id="connected-accounts-hint"
+            class="sso-hint hidden"
+            style="margin-bottom: 10px; font-size: 0.9em"
+          ></p>
+          <div id="connected-accounts-list" style="display: flex; flex-direction: column; gap: 8px">
+            Loading...
+          </div>
         </div>
-        <p id="comment-edit-error" class="message"></p>
+
+        <div id="create-post-section" style="margin-top: 20px">
+          <h3>Create New Post</h3>
+          <input type="text" id="post-title" placeholder="Post Title" maxlength="150" />
+          <textarea
+            id="post-content"
+            placeholder="Post Content"
+            rows="4"
+            maxlength="5000"
+          ></textarea>
+          <div class="media-upload">
+            <input type="file" id="post-media" accept="image/jpeg,image/png,image/webp,image/gif" />
+            <p id="media-upload-error" class="media-upload-error"></p>
+          </div>
+          <div id="categories-container"></div>
+          <button id="create-post-btn" type="button">Publish Post</button>
+        </div>
       </div>
+
+      <!-- Filters -->
+      <div id="filter-section">
+        <h3>Filter Posts</h3>
+        <div class="filter-buttons">
+          <button type="button" id="filter-all" class="filter-btn active">All Posts</button>
+          <button type="button" id="filter-my-posts" class="filter-btn user-only hidden">
+            My Posts
+          </button>
+          <button type="button" id="filter-my-likes" class="filter-btn user-only hidden">
+            My Likes
+          </button>
+        </div>
+        <div class="filter-categories">
+          <p style="margin-bottom: 5px; font-weight: bold">By Category:</p>
+          <div id="filter-categories-container"></div>
+        </div>
+      </div>
+
+      <!-- Posts feed -->
+      <div id="posts-container">
+        <h3>Recent Posts</h3>
+        <div id="posts-list">Loading posts...</div>
+        <div id="pagination" class="pagination"></div>
+      </div>
+
+      <!-- Moderation Dashboard -->
+      <div id="moderation-section" class="hidden">
+        <h3 style="color: #e67e22">Moderation Dashboard</h3>
+        <div class="mod-grid">
+          <div>
+            <h4>Pending Posts</h4>
+            <div id="mod-queue-posts">Loading...</div>
+          </div>
+          <div>
+            <h4>Pending Comments</h4>
+            <div id="mod-queue-comments">Loading...</div>
+          </div>
+        </div>
+        <h4>Open Reports</h4>
+        <div id="mod-reports">Loading...</div>
+
+        <!-- D2: Admin Categories Management -->
+        <div
+          id="admin-categories-section"
+          class="hidden"
+          style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e67e22"
+        >
+          <h4>Manage Categories (Admin)</h4>
+          <div style="display: flex; gap: 10px; margin-bottom: 10px">
+            <input
+              type="text"
+              id="new-category-name"
+              placeholder="New category name (2-50 chars)"
+              maxlength="50"
+              style="flex: 1; margin: 0"
+            />
+            <button
+              id="add-category-btn"
+              type="button"
+              style="flex: 0; padding: 10px 20px; margin: 0; white-space: nowrap"
+            >
+              Add Category
+            </button>
+          </div>
+          <p id="category-error" class="message" style="margin: 5px 0"></p>
+          <div id="categories-admin-list">Loading...</div>
+        </div>
+
+        <!-- D3: Admin User Management -->
+        <div
+          id="admin-users-section"
+          class="hidden"
+          style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e67e22"
+        >
+          <h4>Manage Users (Admin)</h4>
+          <p style="color: #7f8c8d; font-size: 0.9em; margin: 5px 0 10px 0">
+            Promote/demote user roles. Be careful with admin changes.
+          </p>
+          <div id="users-admin-list">Loading...</div>
+          <p id="user-management-error" class="message" style="margin: 5px 0"></p>
+        </div>
+      </div>
+
+      <!-- Edit Post Modal -->
+      <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Edit Post</h3>
+          <input type="text" id="edit-title" placeholder="Title" maxlength="150" />
+          <textarea id="edit-content" placeholder="Content" rows="4" maxlength="5000"></textarea>
+          <div id="edit-categories-container"></div>
+          <div style="display: flex; gap: 10px; margin-top: 10px">
+            <button id="edit-save-btn" type="button" style="background: #27ae60">Save</button>
+            <button id="edit-cancel-btn" type="button" style="background: #95a5a6">Cancel</button>
+          </div>
+          <p id="edit-error" class="message"></p>
+        </div>
+      </div>
+
+      <!-- F04: Change Password Modal -->
+      <div id="password-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Change Password</h3>
+          <input
+            type="password"
+            id="current-password"
+            placeholder="Current Password"
+            autocomplete="current-password"
+          />
+          <input
+            type="password"
+            id="new-password"
+            placeholder="New Password (min 8)"
+            autocomplete="new-password"
+          />
+          <div style="display: flex; gap: 10px; margin-top: 10px">
+            <button id="save-password-btn" type="button" style="background: #27ae60">Save</button>
+            <button id="cancel-password-btn" type="button" style="background: #95a5a6">
+              Cancel
+            </button>
+          </div>
+          <p id="password-error" class="message"></p>
+        </div>
+      </div>
+
+      <!-- F05: Report Modal -->
+      <div id="report-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Report Content</h3>
+          <textarea
+            id="report-reason"
+            placeholder="Why are you reporting this? (min 3 chars)"
+            rows="3"
+            maxlength="500"
+          ></textarea>
+          <div style="display: flex; gap: 10px; margin-top: 10px">
+            <button id="report-submit-btn" type="button" style="background: #e74c3c">Report</button>
+            <button id="report-cancel-btn" type="button" style="background: #95a5a6">Cancel</button>
+          </div>
+          <p id="report-error" class="message"></p>
+        </div>
+      </div>
+
+      <!-- D1: Comment Edit Modal -->
+      <div id="comment-edit-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Edit Comment</h3>
+          <textarea
+            id="comment-edit-content"
+            placeholder="Comment content"
+            rows="4"
+            maxlength="2000"
+          ></textarea>
+          <div style="display: flex; gap: 10px; margin-top: 10px">
+            <button id="comment-edit-save-btn" type="button" style="background: #27ae60">
+              Save
+            </button>
+            <button id="comment-edit-cancel-btn" type="button" style="background: #95a5a6">
+              Cancel
+            </button>
+          </div>
+          <p id="comment-edit-error" class="message"></p>
+        </div>
+      </div>
+
+      <!-- F06: Activity Feed -->
+      <div id="activity-section" class="hidden">
+        <h3>My Activity</h3>
+        <div id="activity-list">Loading...</div>
+      </div>
+
+      <p id="message" class="message"></p>
     </div>
 
-    <!-- F06: Activity Feed -->
-    <div id="activity-section" class="hidden">
-      <h3>My Activity</h3>
-      <div id="activity-list">Loading...</div>
-    </div>
-
-    <p id="message" class="message"></p>
-  </div>
-
-  <script src="/script.js"></script>
-</body>
+    <script src="/script.js"></script>
+  </body>
 </html>

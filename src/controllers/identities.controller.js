@@ -91,15 +91,9 @@ function unlinkIdentity(req, res, next) {
     // via the compromised provider. Then create a fresh session for
     // the current device so the user stays logged in here.
     const ua = req.get('user-agent');
-    const uaHash = (config.session.bindToUserAgent && ua)
-      ? fingerprint(ua)
-      : null;
+    const uaHash = config.session.bindToUserAgent && ua ? fingerprint(ua) : null;
     sessionModel.deleteAllForUser(req.user.id);
-    const newSession = sessionModel.create(
-      req.user.id,
-      config.session.maxAgeMs,
-      uaHash
-    );
+    const newSession = sessionModel.create(req.user.id, config.session.maxAgeMs, uaHash);
     req.session.sid = newSession.id;
 
     logger.info(`User ${req.user.id} unlinked ${provider}; other sessions revoked`);

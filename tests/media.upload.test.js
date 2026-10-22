@@ -9,7 +9,9 @@ let app, agent, csrf, postId;
 async function makePng() {
   return sharp({
     create: { width: 200, height: 200, channels: 3, background: { r: 255, g: 0, b: 0 } },
-  }).png().toBuffer();
+  })
+    .png()
+    .toBuffer();
 }
 
 beforeAll(async () => {
@@ -19,12 +21,18 @@ beforeAll(async () => {
   const { token } = await getCsrfFor(agent);
   csrf = token;
 
-  await agent.post('/register').set('x-csrf-token', csrf)
+  await agent
+    .post('/register')
+    .set('x-csrf-token', csrf)
     .send({ username: 'muser', email: 'm@e.com', password: 'longpassword' });
-  await agent.post('/login').set('x-csrf-token', csrf)
+  await agent
+    .post('/login')
+    .set('x-csrf-token', csrf)
     .send({ username: 'muser', password: 'longpassword' });
 
-  const p = await agent.post('/api/posts').set('x-csrf-token', csrf)
+  const p = await agent
+    .post('/api/posts')
+    .set('x-csrf-token', csrf)
     .send({ title: 'Post with media', content: 'Body content', categoryIds: [1] });
   postId = p.body.id;
 
@@ -46,14 +54,14 @@ describe('Media upload', () => {
 
   test('rejects upload without CSRF (403)', async () => {
     const buf = await makePng();
-    const res = await agent.post(`/api/posts/${postId}/media`)
-      .attach('file', buf, 'a.png');
+    const res = await agent.post(`/api/posts/${postId}/media`).attach('file', buf, 'a.png');
     expect(res.status).toBe(403);
   });
 
   test('accepts valid PNG and returns URL', async () => {
     const buf = await makePng();
-    const res = await agent.post(`/api/posts/${postId}/media`)
+    const res = await agent
+      .post(`/api/posts/${postId}/media`)
       .set('x-csrf-token', csrf)
       .attach('file', buf, 'a.png');
     expect(res.status).toBe(201);
@@ -64,7 +72,8 @@ describe('Media upload', () => {
 
   test('rejects file over size limit (413)', async () => {
     const big = Buffer.alloc(6 * 1024 * 1024, 0xff);
-    const res = await agent.post(`/api/posts/${postId}/media`)
+    const res = await agent
+      .post(`/api/posts/${postId}/media`)
       .set('x-csrf-token', csrf)
       .attach('file', big, 'huge.png');
     expect([400, 413]).toContain(res.status);
@@ -72,7 +81,8 @@ describe('Media upload', () => {
 
   test('serves uploaded media with correct headers', async () => {
     const buf = await makePng();
-    const up = await agent.post(`/api/posts/${postId}/media`)
+    const up = await agent
+      .post(`/api/posts/${postId}/media`)
       .set('x-csrf-token', csrf)
       .attach('file', buf, 'serve.png');
     const res = await request(app).get(up.body.url);

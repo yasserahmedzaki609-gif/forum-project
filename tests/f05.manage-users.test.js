@@ -16,17 +16,25 @@ describe('D3 — List Users (admin only)', () => {
     adminAgent = request.agent(app);
     const { token: aT } = await getCsrfFor(adminAgent);
     adminToken = aT;
-    await adminAgent.post('/register').set('x-csrf-token', adminToken)
+    await adminAgent
+      .post('/register')
+      .set('x-csrf-token', adminToken)
       .send({ username: 'admin', email: 'admin@e.com', password: 'longpassword' });
-    await adminAgent.post('/login').set('x-csrf-token', adminToken)
+    await adminAgent
+      .post('/login')
+      .set('x-csrf-token', adminToken)
       .send({ username: 'admin', password: 'longpassword' });
 
     userAgent = request.agent(app);
     const { token: uT } = await getCsrfFor(userAgent);
     userToken = uT;
-    await userAgent.post('/register').set('x-csrf-token', userToken)
+    await userAgent
+      .post('/register')
+      .set('x-csrf-token', userToken)
       .send({ username: 'regular', email: 'user@e.com', password: 'longpassword' });
-    await userAgent.post('/login').set('x-csrf-token', userToken)
+    await userAgent
+      .post('/login')
+      .set('x-csrf-token', userToken)
       .send({ username: 'regular', password: 'longpassword' });
   });
 
@@ -37,14 +45,14 @@ describe('D3 — List Users (admin only)', () => {
     expect(res.body.length).toBeGreaterThanOrEqual(2);
 
     // Should include both users
-    const usernames = res.body.map(u => u.username).sort();
+    const usernames = res.body.map((u) => u.username).sort();
     expect(usernames).toContain('admin');
     expect(usernames).toContain('regular');
   });
 
   test('D3-2: list includes role and created_at', async () => {
     const res = await adminAgent.get('/api/users');
-    const adminUser = res.body.find(u => u.username === 'admin');
+    const adminUser = res.body.find((u) => u.username === 'admin');
     expect(adminUser).toHaveProperty('role');
     expect(adminUser.role).toBe('admin');
     expect(adminUser).toHaveProperty('created_at');

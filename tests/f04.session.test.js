@@ -13,11 +13,13 @@ describe('F04 — Session Hardening', () => {
 
   async function registerAndLogin(agent, username, ua = UA) {
     const { token } = await getCsrfFor(agent);
-    await agent.post('/register')
+    await agent
+      .post('/register')
       .set('x-csrf-token', token)
       .set('User-Agent', ua)
       .send({ username, email: `${username}@e.com`, password: 'longpassword' });
-    await agent.post('/login')
+    await agent
+      .post('/login')
       .set('x-csrf-token', token)
       .set('User-Agent', ua)
       .send({ username, password: 'longpassword' });
@@ -38,7 +40,7 @@ describe('F04 — Session Hardening', () => {
 
   test('login from a second device kills the first session', async () => {
     const db = require('../src/database/db');
-    
+
     // Clear sessions to isolate this test
     db.prepare('DELETE FROM sessions').run();
 
@@ -50,7 +52,8 @@ describe('F04 — Session Hardening', () => {
 
     const deviceB = request.agent(app);
     const { token } = await getCsrfFor(deviceB);
-    await deviceB.post('/login')
+    await deviceB
+      .post('/login')
       .set('x-csrf-token', token)
       .set('User-Agent', 'DeviceB/1.0')
       .send({ username: 'bob', password: 'longpassword' });
@@ -135,10 +138,8 @@ describe('F04 — Session Hardening', () => {
     const before = await agent.get('/me').set('User-Agent', UA);
     expect(before.status).toBe(200);
 
-    await agent.post('/logout')
-      .set('x-csrf-token', token)
-      .set('User-Agent', UA);
-      
+    await agent.post('/logout').set('x-csrf-token', token).set('User-Agent', UA);
+
     const after = await agent.get('/me').set('User-Agent', UA);
     expect(after.status).toBe(401);
   });

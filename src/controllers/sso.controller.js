@@ -115,15 +115,9 @@ async function callback(req, res, next) {
     sessionModel.deleteAllForUser(result.userId);
 
     const ua = req.get('user-agent');
-    const uaHash = (config.session.bindToUserAgent && ua)
-      ? fingerprint(ua)
-      : null;
+    const uaHash = config.session.bindToUserAgent && ua ? fingerprint(ua) : null;
 
-    const session = sessionModel.create(
-      result.userId,
-      config.session.maxAgeMs,
-      uaHash
-    );
+    const session = sessionModel.create(result.userId, config.session.maxAgeMs, uaHash);
     req.session.sid = session.id;
 
     logger.info(

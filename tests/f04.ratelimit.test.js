@@ -12,14 +12,16 @@ describe('F04 — Rate Limiting', () => {
   test('login blocked after 10 attempts for same username', async () => {
     const regAgent = request.agent(app);
     const { token: regToken } = await getCsrfFor(regAgent);
-    await regAgent.post('/register')
+    await regAgent
+      .post('/register')
       .set('x-csrf-token', regToken)
       .send({ username: 'limituser', email: 'limit@e.com', password: 'longpassword' });
 
     for (let i = 0; i < 10; i++) {
       const agent = request.agent(app);
       const { token } = await getCsrfFor(agent);
-      const res = await agent.post('/login')
+      const res = await agent
+        .post('/login')
         .set('x-csrf-token', token)
         .send({ username: 'limituser', password: 'wrongpassword' });
       expect(res.status).toBe(401);
@@ -27,7 +29,8 @@ describe('F04 — Rate Limiting', () => {
 
     const agent = request.agent(app);
     const { token } = await getCsrfFor(agent);
-    const blocked = await agent.post('/login')
+    const blocked = await agent
+      .post('/login')
       .set('x-csrf-token', token)
       .send({ username: 'limituser', password: 'longpassword' });
     expect(blocked.status).toBe(429);
@@ -36,13 +39,15 @@ describe('F04 — Rate Limiting', () => {
   test('different usernames have independent login limits', async () => {
     const regAgent = request.agent(app);
     const { token: regToken } = await getCsrfFor(regAgent);
-    await regAgent.post('/register')
+    await regAgent
+      .post('/register')
       .set('x-csrf-token', regToken)
       .send({ username: 'otheruser', email: 'other@e.com', password: 'longpassword' });
 
     const agent = request.agent(app);
     const { token } = await getCsrfFor(agent);
-    const res = await agent.post('/login')
+    const res = await agent
+      .post('/login')
       .set('x-csrf-token', token)
       .send({ username: 'otheruser', password: 'longpassword' });
     expect(res.status).toBe(200);
@@ -52,21 +57,25 @@ describe('F04 — Rate Limiting', () => {
     const agent = request.agent(app);
     const { token } = await getCsrfFor(agent);
 
-    await agent.post('/register')
+    await agent
+      .post('/register')
       .set('x-csrf-token', token)
       .send({ username: 'spammer', email: 'spam@e.com', password: 'longpassword' });
-    await agent.post('/login')
+    await agent
+      .post('/login')
       .set('x-csrf-token', token)
       .send({ username: 'spammer', password: 'longpassword' });
 
     for (let i = 1; i <= 10; i++) {
-      const res = await agent.post('/api/posts')
+      const res = await agent
+        .post('/api/posts')
         .set('x-csrf-token', token)
         .send({ title: `Post ${i}`, content: `Content ${i}`, categoryIds: [1] });
       expect(res.status).toBe(201);
     }
 
-    const blocked = await agent.post('/api/posts')
+    const blocked = await agent
+      .post('/api/posts')
       .set('x-csrf-token', token)
       .send({ title: 'Post 11', content: 'Blocked', categoryIds: [1] });
     expect(blocked.status).toBe(429);
@@ -76,26 +85,31 @@ describe('F04 — Rate Limiting', () => {
     const agent = request.agent(app);
     const { token } = await getCsrfFor(agent);
 
-    await agent.post('/register')
+    await agent
+      .post('/register')
       .set('x-csrf-token', token)
       .send({ username: 'chatty', email: 'chatty@e.com', password: 'longpassword' });
-    await agent.post('/login')
+    await agent
+      .post('/login')
       .set('x-csrf-token', token)
       .send({ username: 'chatty', password: 'longpassword' });
 
-    const post = await agent.post('/api/posts')
+    const post = await agent
+      .post('/api/posts')
       .set('x-csrf-token', token)
       .send({ title: 'Target post', content: 'Body', categoryIds: [1] });
     const postId = post.body.id;
 
     for (let i = 1; i <= 20; i++) {
-      const res = await agent.post(`/api/posts/${postId}/comments`)
+      const res = await agent
+        .post(`/api/posts/${postId}/comments`)
         .set('x-csrf-token', token)
         .send({ content: `Comment ${i}` });
       expect(res.status).toBe(201);
     }
 
-    const blocked = await agent.post(`/api/posts/${postId}/comments`)
+    const blocked = await agent
+      .post(`/api/posts/${postId}/comments`)
       .set('x-csrf-token', token)
       .send({ content: 'Blocked' });
     expect(blocked.status).toBe(429);
@@ -105,25 +119,35 @@ describe('F04 — Rate Limiting', () => {
     const agent = request.agent(app);
     const { token } = await getCsrfFor(agent);
 
-    await agent.post('/register').set('x-csrf-token', token)
+    await agent
+      .post('/register')
+      .set('x-csrf-token', token)
       .send({ username: 'reporter', email: 'r@e.com', password: 'longpassword' });
-    await agent.post('/login').set('x-csrf-token', token)
+    await agent
+      .post('/login')
+      .set('x-csrf-token', token)
       .send({ username: 'reporter', password: 'longpassword' });
 
     // Create a post to report
-    const post = await agent.post('/api/posts').set('x-csrf-token', token)
+    const post = await agent
+      .post('/api/posts')
+      .set('x-csrf-token', token)
       .send({ title: 'Report target', content: 'Body', categoryIds: [1] });
     const postId = post.body.id;
 
     // First 5 reports succeed
     for (let i = 0; i < 5; i++) {
-      const r = await agent.post('/api/reports').set('x-csrf-token', token)
+      const r = await agent
+        .post('/api/reports')
+        .set('x-csrf-token', token)
         .send({ targetType: 'post', targetId: postId, reason: `Spam ${i}` });
       expect(r.status).toBe(201);
     }
 
     // 6th is blocked
-    const blocked = await agent.post('/api/reports').set('x-csrf-token', token)
+    const blocked = await agent
+      .post('/api/reports')
+      .set('x-csrf-token', token)
       .send({ targetType: 'post', targetId: postId, reason: 'Spam 6' });
     expect(blocked.status).toBe(429);
   });

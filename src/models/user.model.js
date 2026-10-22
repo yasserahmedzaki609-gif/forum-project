@@ -9,18 +9,12 @@ const stmtFindByUsername = db.prepare('SELECT * FROM users WHERE username = ?');
 const stmtFindById = db.prepare(
   'SELECT id, username, email, role, created_at FROM users WHERE id = ?'
 );
-const stmtFindByIdWithPassword = db.prepare(
-  'SELECT * FROM users WHERE id = ?'
-);
+const stmtFindByIdWithPassword = db.prepare('SELECT * FROM users WHERE id = ?');
 const stmtInsert = db.prepare(
   'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)'
 );
-const stmtUpdatePassword = db.prepare(
-  'UPDATE users SET password = ? WHERE id = ?'
-);
-const stmtUpdateRole = db.prepare(
-  'UPDATE users SET role = ? WHERE id = ?'
-);
+const stmtUpdatePassword = db.prepare('UPDATE users SET password = ? WHERE id = ?');
+const stmtUpdateRole = db.prepare('UPDATE users SET role = ? WHERE id = ?');
 
 // C4: Delete user — cascades handle related rows (sessions, posts, comments,
 // reactions, media, identities, reports). moderation_logs.actor_id becomes
@@ -43,7 +37,7 @@ module.exports = {
   findByIdWithPassword: (id) => stmtFindByIdWithPassword.get(id),
   countAll: () => stmtCountAll.get().c,
   deleteById: (id) => stmtDeleteById.run(id).changes > 0, // ← C4: جديد
-  listAll: () => stmtListAll.all(),                       // ← D3: موجود مسبقاً
+  listAll: () => stmtListAll.all(), // ← D3: موجود مسبقاً
   create: (username, email, passwordHash, role = 'user') => {
     const info = stmtInsert.run(username, email, passwordHash, role);
     return { id: info.lastInsertRowid, username, email, role };

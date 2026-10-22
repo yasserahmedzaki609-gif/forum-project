@@ -117,7 +117,7 @@ const uploadLimiter = rateLimit({
 // ---------------------------------------------------------------------------
 const reportLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,                    // 5 reports/hour/user
+  max: 5, // 5 reports/hour/user
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: userOrIpKey,
@@ -132,5 +132,5 @@ module.exports = {
   commentCreateLimiter,
   reactionLimiter,
   uploadLimiter,
-  reportLimiter,  // ← جديد
+  reportLimiter, // ← جديد
 };

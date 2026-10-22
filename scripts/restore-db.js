@@ -41,9 +41,7 @@ function main() {
   const verifyDb = new Database(backupAbs);
   verifyDb.pragma(`key = '${config.db.password}'`);
   try {
-    const tables = verifyDb.prepare(
-      "SELECT name FROM sqlite_master WHERE type='table'"
-    ).all();
+    const tables = verifyDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
     logger.info(`✅ Backup verified. Tables: ${tables.map((t) => t.name).join(', ')}`);
   } catch (err) {
     console.error('Wrong DB_PASSWORD (cannot read backup):', err.message);
@@ -57,9 +55,7 @@ function main() {
       const testDb = new Database(dbPath, { readonly: true });
       testDb.close();
     } catch (err) {
-      console.error(
-        'Target DB appears to be in use. Stop the server before restoring.'
-      );
+      console.error('Target DB appears to be in use. Stop the server before restoring.');
       process.exit(1);
     }
   }

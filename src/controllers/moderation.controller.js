@@ -11,9 +11,9 @@ const roleRequestModel = require('../models/roleRequest.model');
 const moderationLogModel = require('../models/moderationLog.model'); // ← C1: Audit trail model
 
 const { HttpError } = require('../middleware/errorHandler');
-const { 
-  validateRoleRequest, 
-  validateRoleRequestReview 
+const {
+  validateRoleRequest,
+  validateRoleRequestReview,
 } = require('../validators/moderation.validator');
 
 // ---------------------------------------------------------------------------
@@ -35,13 +35,10 @@ function changeUserRole(req, res, next) {
     userModel.updateRole(userId, req.body.role);
 
     // C1: audit trail
-    moderationLogModel.log(
-      req.user.id,
-      'user.role_change',
-      'user',
-      userId,
-      { previous_role: previousRole, new_role: req.body.role }
-    );
+    moderationLogModel.log(req.user.id, 'user.role_change', 'user', userId, {
+      previous_role: previousRole,
+      new_role: req.body.role,
+    });
 
     res.json({ ok: true, id: userId, role: req.body.role });
   } catch (err) {
@@ -78,13 +75,10 @@ function changePostStatus(req, res, next) {
     postModel.updateStatus(postId, req.body.status);
 
     // C1: audit trail
-    moderationLogModel.log(
-      req.user.id,
-      'post.status_change',
-      'post',
-      postId,
-      { previous_status: previousStatus, new_status: req.body.status }
-    );
+    moderationLogModel.log(req.user.id, 'post.status_change', 'post', postId, {
+      previous_status: previousStatus,
+      new_status: req.body.status,
+    });
 
     res.json({ ok: true, id: postId, status: req.body.status });
   } catch (err) {
@@ -98,7 +92,8 @@ function changePostStatus(req, res, next) {
 function changeCommentStatus(req, res, next) {
   try {
     const commentId = parseInt(req.params.id, 10);
-    if (!Number.isInteger(commentId) || commentId <= 0) throw new HttpError(400, 'Invalid comment id');
+    if (!Number.isInteger(commentId) || commentId <= 0)
+      throw new HttpError(400, 'Invalid comment id');
 
     const comment = commentModel.findById(commentId);
     if (!comment) throw new HttpError(404, 'Comment not found');
@@ -107,13 +102,10 @@ function changeCommentStatus(req, res, next) {
     commentModel.updateStatus(commentId, req.body.status);
 
     // C1: audit trail
-    moderationLogModel.log(
-      req.user.id,
-      'comment.status_change',
-      'comment',
-      commentId,
-      { previous_status: previousStatus, new_status: req.body.status }
-    );
+    moderationLogModel.log(req.user.id, 'comment.status_change', 'comment', commentId, {
+      previous_status: previousStatus,
+      new_status: req.body.status,
+    });
 
     res.json({ ok: true, id: commentId, status: req.body.status });
   } catch (err) {
@@ -168,13 +160,10 @@ function updateReport(req, res, next) {
     reportModel.updateStatus(reportId, req.body.status);
 
     // C1: audit trail
-    moderationLogModel.log(
-      req.user.id,
-      'report.status_change',
-      'report',
-      reportId,
-      { previous_status: previousStatus, new_status: req.body.status }
-    );
+    moderationLogModel.log(req.user.id, 'report.status_change', 'report', reportId, {
+      previous_status: previousStatus,
+      new_status: req.body.status,
+    });
 
     res.json({ ok: true, id: reportId, status: req.body.status });
   } catch (err) {
@@ -312,24 +301,15 @@ function listMyRoleRequests(req, res, next) {
 // ---------------------------------------------------------------------------
 function listAuditLog(req, res, next) {
   try {
-    const limit = Math.min(
-      parseInt(req.query.limit, 10) || 100,
-      500
-    );
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
 
     const { target_type, target_id, actor_id } = req.query;
 
     let rows;
     if (target_type && target_id) {
-      rows = moderationLogModel.listByTarget(
-        target_type,
-        parseInt(target_id, 10)
-      );
+      rows = moderationLogModel.listByTarget(target_type, parseInt(target_id, 10));
     } else if (actor_id) {
-      rows = moderationLogModel.listByActor(
-        parseInt(actor_id, 10),
-        limit
-      );
+      rows = moderationLogModel.listByActor(parseInt(actor_id, 10), limit);
     } else {
       rows = moderationLogModel.listRecent(limit);
     }
@@ -352,7 +332,7 @@ function listUsers(req, res, next) {
     const users = userModel.listAll();
 
     // Don't leak password hashes. Add a derived "isSsoOnly" flag for the UI.
-    // Note: stmtListAll already excludes the password column, but explicit 
+    // Note: stmtListAll already excludes the password column, but explicit
     // sanitization here is a best practice for defense in depth.
     const sanitized = users.map((u) => ({
       id: u.id,
@@ -383,5 +363,5 @@ module.exports = {
   reviewRoleRequest,
   listMyRoleRequests,
   listAuditLog,
-  listUsers,          
+  listUsers,
 };

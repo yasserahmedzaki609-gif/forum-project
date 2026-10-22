@@ -15,10 +15,7 @@ beforeAll(async () => {
 
 describe('Auth', () => {
   test('register rejects missing fields', async () => {
-    const res = await agent
-      .post('/register')
-      .set('x-csrf-token', csrf)
-      .send({});
+    const res = await agent.post('/register').set('x-csrf-token', csrf).send({});
     expect(res.status).toBe(400);
   });
 
@@ -94,9 +91,7 @@ describe('Auth', () => {
   });
 
   test('logout clears session', async () => {
-    const res = await agent
-      .post('/logout')
-      .set('x-csrf-token', csrf);
+    const res = await agent.post('/logout').set('x-csrf-token', csrf);
     expect(res.status).toBe(200);
 
     const me = await agent.get('/me');

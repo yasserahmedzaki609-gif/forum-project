@@ -29,7 +29,7 @@ async function register(req, res, next) {
     if (userModel.findByUsername(username)) throw new HttpError(409, 'Username taken');
 
     const hash = await hashPassword(password);
-    
+
     // F05: First user becomes admin
     const role = userModel.countAll() === 0 ? 'admin' : 'user';
     const user = userModel.create(username, email, hash, role);
@@ -58,11 +58,7 @@ async function login(req, res, next) {
 
     sessionModel.deleteAllForUser(user.id);
 
-    const s = sessionModel.create(
-      user.id,
-      config.session.maxAgeMs,
-      uaHashFrom(req)
-    );
+    const s = sessionModel.create(user.id, config.session.maxAgeMs, uaHashFrom(req));
     req.session.sid = s.id;
 
     res.json({ id: user.id, username: user.username, role: user.role });
@@ -129,11 +125,7 @@ async function changePassword(req, res, next) {
     sessionModel.deleteAllForUser(userId);
 
     // Then create a fresh session for the CURRENT device
-    const newSession = sessionModel.create(
-      userId,
-      config.session.maxAgeMs,
-      uaHashFrom(req)
-    );
+    const newSession = sessionModel.create(userId, config.session.maxAgeMs, uaHashFrom(req));
     req.session.sid = newSession.id;
 
     res.json({
@@ -186,9 +178,7 @@ async function deleteAccount(req, res, next) {
 
     // Last admin protection
     if (user.role === 'admin') {
-      const adminCount = db
-        .prepare("SELECT COUNT(*) AS c FROM users WHERE role = 'admin'")
-        .get().c;
+      const adminCount = db.prepare("SELECT COUNT(*) AS c FROM users WHERE role = 'admin'").get().c;
       if (adminCount <= 1) {
         throw new HttpError(
           409,

@@ -25,9 +25,7 @@ const db = require('../database/db');
 // Table existence — cached for the process lifetime (schema doesn't change
 // at runtime; if it does, the process is restarted).
 // ---------------------------------------------------------------------------
-const stmtTableExists = db.prepare(
-  "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?"
-);
+const stmtTableExists = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?");
 
 const cache = {
   reports: null,

@@ -13,11 +13,7 @@ const crypto = require('crypto');
 // base64url encoding (RFC 4648 §5) without padding
 // ---------------------------------------------------------------------------
 function base64url(buf) {
-  return buf
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 // ---------------------------------------------------------------------------

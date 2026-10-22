@@ -91,9 +91,7 @@ async function exchangeCode({ code, codeVerifier, redirectUri }) {
   });
 
   if (!token.access_token) {
-    throw new Error(
-      `GitHub token exchange failed: ${token.error || 'unknown_error'}`
-    );
+    throw new Error(`GitHub token exchange failed: ${token.error || 'unknown_error'}`);
   }
 
   const user = await fetchJson(config.sso.github.userInfoEndpoint, {

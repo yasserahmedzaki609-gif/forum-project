@@ -6,7 +6,7 @@ const db = require('../database/db');
 const config = require('../config');
 
 const stmtInsert = db.prepare(
-  'INSERT INTO posts (title, content, user_id, status, updated_at) VALUES (?, ?, ?, ?, strftime(\'%Y-%m-%d %H:%M:%f\', \'now\'))'
+  "INSERT INTO posts (title, content, user_id, status, updated_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))"
 );
 
 const stmtAttachCategory = db.prepare(
@@ -65,7 +65,9 @@ function buildListQuery({ category, filter, userId, includePending, limit, offse
   `;
 
   if (category) {
-    conditions.push(`p.id IN (SELECT pc2.post_id FROM post_categories pc2 JOIN categories c2 ON c2.id = pc2.category_id WHERE c2.name = ?)`);
+    conditions.push(
+      `p.id IN (SELECT pc2.post_id FROM post_categories pc2 JOIN categories c2 ON c2.id = pc2.category_id WHERE c2.name = ?)`
+    );
     params.push(category);
   }
   if (filter === 'my_posts') {
@@ -74,7 +76,9 @@ function buildListQuery({ category, filter, userId, includePending, limit, offse
     params.push(userId);
   } else if (filter === 'my_likes') {
     if (!userId) throw new Error('UNAUTHORIZED');
-    conditions.push(`p.id IN (SELECT target_id FROM reactions WHERE target_type = 'post' AND value = 1 AND user_id = ?)`);
+    conditions.push(
+      `p.id IN (SELECT target_id FROM reactions WHERE target_type = 'post' AND value = 1 AND user_id = ?)`
+    );
     params.push(userId);
   }
 
@@ -92,8 +96,12 @@ function list(opts) {
   const limit = Math.min(opts.limit || config.pagination.defaultSize, config.pagination.maxSize);
   const offset = opts.offset || 0;
   const { query, params, countQuery, countParams } = buildListQuery({
-    category: opts.category, filter: opts.filter, userId: opts.userId,
-    includePending: opts.includePending || false, limit, offset,
+    category: opts.category,
+    filter: opts.filter,
+    userId: opts.userId,
+    includePending: opts.includePending || false,
+    limit,
+    offset,
   });
   const rows = db.prepare(query).all(...params);
   const total = db.prepare(countQuery).get(...countParams).total;
@@ -107,14 +115,16 @@ const createTx = db.transaction((userId, title, content, categoryIds, status) =>
   return postId;
 });
 
-const updateTx = db.transaction((postId, userId, title, content, categoryIds, expectedUpdatedAt) => {
-  const info = stmtUpdateContent.run(title, content, postId, userId, expectedUpdatedAt);
-  if (info.changes === 0) return false;
+const updateTx = db.transaction(
+  (postId, userId, title, content, categoryIds, expectedUpdatedAt) => {
+    const info = stmtUpdateContent.run(title, content, postId, userId, expectedUpdatedAt);
+    if (info.changes === 0) return false;
 
-  stmtDeleteCategories.run(postId);
-  for (const cid of categoryIds) stmtAttachCategory.run(postId, cid);
-  return true;
-});
+    stmtDeleteCategories.run(postId);
+    for (const cid of categoryIds) stmtAttachCategory.run(postId, cid);
+    return true;
+  }
+);
 
 const deleteTx = db.transaction((postId, userId) => {
   const info = stmtDelete.run(postId, userId);
@@ -122,20 +132,26 @@ const deleteTx = db.transaction((postId, userId) => {
 });
 
 function listPending() {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT p.id, p.title, p.content, p.created_at, p.status, u.username AS author
     FROM posts p JOIN users u ON u.id = p.user_id
     WHERE p.status = 'pending' ORDER BY p.created_at ASC
-  `).all();
+  `
+    )
+    .all();
 }
 
 module.exports = {
   findById: (id) => stmtById.get(id),
   findByIdAggregated: (id) => stmtFindByIdAggregated.get(id),
   list,
-  create: (userId, title, content, categoryIds, status = 'approved') => createTx(userId, title, content, categoryIds, status),
+  create: (userId, title, content, categoryIds, status = 'approved') =>
+    createTx(userId, title, content, categoryIds, status),
   updateStatus: (id, status) => stmtUpdateStatus.run(status, id).changes > 0,
-  update: (postId, userId, title, content, categoryIds, expectedUpdatedAt) => updateTx(postId, userId, title, content, categoryIds, expectedUpdatedAt),
+  update: (postId, userId, title, content, categoryIds, expectedUpdatedAt) =>
+    updateTx(postId, userId, title, content, categoryIds, expectedUpdatedAt),
   delete: (postId, userId) => deleteTx(postId, userId),
   listPending,
 };

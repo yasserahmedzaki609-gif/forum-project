@@ -16,23 +16,33 @@ describe('F06 — Advanced Features', () => {
     userA = request.agent(app);
     const { token: ta } = await getCsrfFor(userA);
     tokenA = ta;
-    await userA.post('/register').set('x-csrf-token', tokenA)
+    await userA
+      .post('/register')
+      .set('x-csrf-token', tokenA)
       .send({ username: 'usera', email: 'a@e.com', password: 'longpassword' });
-    await userA.post('/login').set('x-csrf-token', tokenA)
+    await userA
+      .post('/login')
+      .set('x-csrf-token', tokenA)
       .send({ username: 'usera', password: 'longpassword' });
 
     // User B
     userB = request.agent(app);
     const { token: tb } = await getCsrfFor(userB);
     tokenB = tb;
-    await userB.post('/register').set('x-csrf-token', tokenB)
+    await userB
+      .post('/register')
+      .set('x-csrf-token', tokenB)
       .send({ username: 'userb', email: 'b@e.com', password: 'longpassword' });
-    await userB.post('/login').set('x-csrf-token', tokenB)
+    await userB
+      .post('/login')
+      .set('x-csrf-token', tokenB)
       .send({ username: 'userb', password: 'longpassword' });
   });
 
   test('create post logs activity', async () => {
-    const res = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const res = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'First Post', content: 'Hello', categoryIds: [1] });
     expect(res.status).toBe(201);
     postId = res.body.id;
@@ -42,14 +52,16 @@ describe('F06 — Advanced Features', () => {
 
     const act = await userA.get('/api/activity/me');
     expect(act.status).toBe(200);
-    expect(act.body.some(a => a.action === 'post_create' && a.target_id === postId)).toBe(true);
+    expect(act.body.some((a) => a.action === 'post_create' && a.target_id === postId)).toBe(true);
   });
 
   test('edit post updates content and logs activity', async () => {
     const post = await userA.get('/api/posts?page=1&pageSize=100');
-    const p = post.body.data.find(x => x.id === postId);
+    const p = post.body.data.find((x) => x.id === postId);
 
-    const res = await userA.put(`/api/posts/${postId}`).set('x-csrf-token', tokenA)
+    const res = await userA
+      .put(`/api/posts/${postId}`)
+      .set('x-csrf-token', tokenA)
       .send({
         title: 'First Post (edited)',
         content: 'Updated',
@@ -59,15 +71,17 @@ describe('F06 — Advanced Features', () => {
     expect(res.status).toBe(200);
 
     const act = await userA.get('/api/activity/me');
-    expect(act.body.some(a => a.action === 'post_edit' && a.target_id === postId)).toBe(true);
+    expect(act.body.some((a) => a.action === 'post_edit' && a.target_id === postId)).toBe(true);
   });
 
   test('stale update rejected (409)', async () => {
     const post = await userA.get('/api/posts?page=1&pageSize=100');
-    const p = post.body.data.find(x => x.id === postId);
+    const p = post.body.data.find((x) => x.id === postId);
 
     // First edit succeeds
-    await userA.put(`/api/posts/${postId}`).set('x-csrf-token', tokenA)
+    await userA
+      .put(`/api/posts/${postId}`)
+      .set('x-csrf-token', tokenA)
       .send({
         title: 'Edit 1',
         content: 'V1',
@@ -76,7 +90,9 @@ describe('F06 — Advanced Features', () => {
       });
 
     // Second edit with OLD updatedAt → 409
-    const res = await userA.put(`/api/posts/${postId}`).set('x-csrf-token', tokenA)
+    const res = await userA
+      .put(`/api/posts/${postId}`)
+      .set('x-csrf-token', tokenA)
       .send({
         title: 'Edit 2',
         content: 'V2',
@@ -86,11 +102,13 @@ describe('F06 — Advanced Features', () => {
     expect(res.status).toBe(409);
   });
 
-  test('other user cannot edit someone else\'s post', async () => {
+  test("other user cannot edit someone else's post", async () => {
     const post = await userB.get('/api/posts?page=1&pageSize=100');
-    const p = post.body.data.find(x => x.id === postId);
+    const p = post.body.data.find((x) => x.id === postId);
 
-    const res = await userB.put(`/api/posts/${postId}`).set('x-csrf-token', tokenB)
+    const res = await userB
+      .put(`/api/posts/${postId}`)
+      .set('x-csrf-token', tokenB)
       .send({
         title: 'Hijacked',
         content: 'Nope',
@@ -102,7 +120,9 @@ describe('F06 — Advanced Features', () => {
 
   test('comment triggers notification to post owner', async () => {
     // User B comments on User A's post
-    await userB.post(`/api/posts/${postId}/comments`).set('x-csrf-token', tokenB)
+    await userB
+      .post(`/api/posts/${postId}/comments`)
+      .set('x-csrf-token', tokenB)
       .send({ content: 'Nice post!' });
 
     // User A should have 1 unread notification
@@ -113,7 +133,8 @@ describe('F06 — Advanced Features', () => {
     expect(notif.body[0].is_read).toBe(0);
 
     // Mark as read
-    const mark = await userA.patch(`/api/notifications/${notif.body[0].id}/read`)
+    const mark = await userA
+      .patch(`/api/notifications/${notif.body[0].id}/read`)
       .set('x-csrf-token', tokenA);
     expect(mark.status).toBe(200);
   });
@@ -122,12 +143,12 @@ describe('F06 — Advanced Features', () => {
     // User B likes A's post
     await userB.post(`/api/posts/${postId}/like`).set('x-csrf-token', tokenB);
     const notif = await userA.get('/api/notifications');
-    expect(notif.body.some(n => n.type === 'like')).toBe(true);
+    expect(notif.body.some((n) => n.type === 'like')).toBe(true);
 
     // User A likes own post → no notification
     await userA.post(`/api/posts/${postId}/like`).set('x-csrf-token', tokenA);
     const notif2 = await userA.get('/api/notifications');
-    const selfLikes = notif2.body.filter(n => n.type === 'like' && n.actor_name === 'usera');
+    const selfLikes = notif2.body.filter((n) => n.type === 'like' && n.actor_name === 'usera');
     expect(selfLikes.length).toBe(0);
   });
 
@@ -143,17 +164,19 @@ describe('F06 — Advanced Features', () => {
     const get = await request(app).get(`/api/posts/${postId}`);
     // 404 because it's deleted (postModel.findById returns undefined, list won't include it)
     const list = await request(app).get('/api/posts');
-    expect(list.body.data.some(p => p.id === postId)).toBe(false);
+    expect(list.body.data.some((p) => p.id === postId)).toBe(false);
   });
 
   test('B4: like→unlike→like produces only one notification (dedup)', async () => {
     // Fresh post owned by user A
-    const postRes = await userA.post('/api/posts').set('x-csrf-token', tokenA)
+    const postRes = await userA
+      .post('/api/posts')
+      .set('x-csrf-token', tokenA)
       .send({ title: 'Dedup test post', content: 'Body', categoryIds: [1] });
     const dedupPostId = postRes.body.id;
-    
-    // Note: For this specific dedup test, the post doesn't strictly need to be 
-    // approved because interactions (likes) usually operate on the post ID directly 
+
+    // Note: For this specific dedup test, the post doesn't strictly need to be
+    // approved because interactions (likes) usually operate on the post ID directly
     // regardless of feed visibility, but approving it maintains consistency.
     approvePost(dedupPostId);
 
@@ -165,9 +188,7 @@ describe('F06 — Advanced Features', () => {
     // User A should have exactly ONE like notification for this post
     const notifs = await userA.get('/api/notifications');
     expect(notifs.status).toBe(200);
-    const likeNotifs = notifs.body.filter(
-      n => n.type === 'like' && n.target_id === dedupPostId
-    );
+    const likeNotifs = notifs.body.filter((n) => n.type === 'like' && n.target_id === dedupPostId);
     expect(likeNotifs.length).toBe(1);
   });
 });

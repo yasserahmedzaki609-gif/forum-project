@@ -14,7 +14,6 @@ const path = require('path');
 let Database;
 let cipherAvailable = true;
 try {
-  // eslint-disable-next-line global-require
   Database = require('better-sqlite3-multiple-ciphers');
 } catch (_) {
   cipherAvailable = false;

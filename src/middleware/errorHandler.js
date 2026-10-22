@@ -35,10 +35,7 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  const safeMessage =
-    status >= 500
-      ? 'Internal server error'
-      : err.message || 'Request error';
+  const safeMessage = status >= 500 ? 'Internal server error' : err.message || 'Request error';
 
   res.status(status).json({
     error: safeMessage,
