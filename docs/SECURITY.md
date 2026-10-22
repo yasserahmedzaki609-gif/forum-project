@@ -174,6 +174,7 @@ This document outlines the security posture of the Forum Project (P01–P26, F01
 - **No key rotation UI**: Rotate via `cipher_rekey` manually (see below).
 
 ### 7.7 Key rotation (manual, advanced)
+
 ```bash
 # Stop the server, then:
 docker compose exec forum node -e "

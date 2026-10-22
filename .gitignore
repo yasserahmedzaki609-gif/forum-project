@@ -50,5 +50,3 @@ Thumbs.db
 dist/
 build/
 combined_project.txt
-# Debug / temporary output
-lint-errors.txt
