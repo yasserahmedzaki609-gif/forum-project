@@ -1,5 +1,5 @@
 // ============================================================================
-// src/models/session.model.js — F04 hardened + F05 roles JOIN
+// src/models/session.model.js — F04 hardened + F05 roles JOIN + C5 throttling
 // ============================================================================
 
 const db = require('../database/db');
@@ -106,8 +106,25 @@ function findValid(id, uaHash = null) {
     }
   }
 
-  // 4. Touch
-  stmtTouch.run(id);
+  // 4. Touch — but only if last_seen_at is stale enough to matter.
+  //
+  // FIX (C5): Without throttling, every authenticated request performed an
+  // UPDATE on the sessions table. At 100 req/s that's 100 writes/s just for
+  // keep-alive, adding unnecessary lock contention to SQLite (WAL helps but
+  // doesn't eliminate it) and disk I/O.
+  //
+  // We only write last_seen_at if it hasn't been updated in the last
+  // TOUCH_THROTTLE_MS (5 minutes). This caps DB writes to 1 per session per
+  // 5 minutes regardless of request rate. The idle timeout remains accurate
+  // within a 5-minute window, which is fine because idle timeout itself is
+  // measured in hours.
+  const TOUCH_THROTTLE_MS = 5 * 60 * 1000;
+  if (!lastSeenAt || now - lastSeenAt.getTime() > TOUCH_THROTTLE_MS) {
+    stmtTouch.run(id);
+    // Update the returned row so callers see the fresh timestamp
+    row.last_seen_at = new Date().toISOString();
+  }
+
   return row;
 }
 
