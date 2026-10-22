@@ -152,7 +152,7 @@ describe('P23 — Role Requests', () => {
   });
 
   test('cannot review already-approved request', async () => {
-    const list = await adminAgent.get('/api/moderation/role-requests');
+    const _list = await adminAgent.get('/api/moderation/role-requests');
     // Now empty (the one was approved). So we need a fresh request.
 
     // Approve action on the same id should now fail because it's no longer pending

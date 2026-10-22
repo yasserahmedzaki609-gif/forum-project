@@ -21,8 +21,13 @@ module.exports = [
     ],
   },
   js.configs.recommended,
+
+  // ==========================================================================
+  // Node.js files — src/, scripts/, tests/, root JS, eslint.config.js itself
+  // ==========================================================================
   {
     files: ['**/*.js'],
+    ignores: ['public/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',
@@ -33,11 +38,11 @@ module.exports = [
     },
     rules: {
       'no-unused-vars': [
-        'error',
+        'warn',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_', // allows `catch (_)`
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
       'no-undef': 'error',
@@ -48,6 +53,7 @@ module.exports = [
       'no-dupe-keys': 'error',
       'no-dupe-args': 'error',
       'no-duplicate-case': 'error',
+      'no-empty': ['error', { allowEmptyCatch: false }],
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
@@ -58,12 +64,18 @@ module.exports = [
     },
   },
 
-  // ---- Test files: relax unused-vars to warn ----
-  // Tests often capture values for debugging or as side effects of an
-  // assertion. Downgrading to 'warn' keeps CI green while leaving a visible
-  // signal to clean up when convenient.
+  // ==========================================================================
+  // Browser files — public/ (runs in browser, not Node)
+  // ==========================================================================
   {
-    files: ['tests/**/*.js'],
+    files: ['public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+      },
+    },
     rules: {
       'no-unused-vars': [
         'warn',
@@ -73,6 +85,11 @@ module.exports = [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      'no-undef': 'error',
+      'no-empty': ['error', { allowEmptyCatch: true }], // allow `catch {}`
+      'no-var': 'error',
+      'prefer-const': ['error', { destructuring: 'all' }],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
     },
   },
 

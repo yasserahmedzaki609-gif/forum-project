@@ -54,7 +54,7 @@ function main() {
     try {
       const testDb = new Database(dbPath, { readonly: true });
       testDb.close();
-    } catch (err) {
+    } catch (_err) {
       console.error('Target DB appears to be in use. Stop the server before restoring.');
       process.exit(1);
     }

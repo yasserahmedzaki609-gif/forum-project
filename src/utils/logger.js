@@ -5,7 +5,7 @@
 // Container-friendly (Docker captures stdout/stderr).
 // ============================================================================
 
-const config = require('../config');
+// const config = require('../config'); // removed (unused)
 
 function ts() {
   return new Date().toISOString();

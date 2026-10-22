@@ -161,7 +161,7 @@ describe('F06 — Advanced Features', () => {
     const res = await userA.delete(`/api/posts/${postId}`).set('x-csrf-token', tokenA);
     expect(res.status).toBe(200);
 
-    const get = await request(app).get(`/api/posts/${postId}`);
+    const _get = await request(app).get(`/api/posts/${postId}`);
     // 404 because it's deleted (postModel.findById returns undefined, list won't include it)
     const list = await request(app).get('/api/posts');
     expect(list.body.data.some((p) => p.id === postId)).toBe(false);

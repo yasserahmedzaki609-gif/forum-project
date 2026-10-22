@@ -55,7 +55,7 @@ describe('C3 — Identities Endpoints', () => {
   test('C3-2: GET returns empty list for user with no SSO links', async () => {
     createUser('localuser', 'local@e.com', 'longpassword');
     const agent = request.agent(app);
-    const token = await loginAs(agent, 'localuser', 'longpassword');
+    const _token = await loginAs(agent, 'localuser', 'longpassword');
 
     const res = await agent.get('/api/users/me/identities');
     expect(res.status).toBe(200);
@@ -82,7 +82,7 @@ describe('C3 — Identities Endpoints', () => {
     const userId = createSsoOnlyUser('ssosolo', 'solo@e.com');
     addIdentity(userId, 'google', 'g-solo', 'solo@e.com');
 
-    const agent = request.agent(app);
+    const _agent = request.agent(app);
     // Need to login via SSO session — but we can't easily simulate SSO here.
     // Instead, create a session manually.
     const db = require('../src/database/db');
@@ -97,7 +97,7 @@ describe('C3 — Identities Endpoints', () => {
     // Manually set the session by hitting /me after manually injecting the cookie
     // Alternative: just call the endpoint with a header — but we need cookie-based session.
     // Easiest: use the session id in a direct request
-    const res = await request(app)
+    const _res = await request(app)
       .delete('/api/users/me/identities/google')
       .set('Cookie', `forum_session=${s.id}`)
       .set('x-csrf-token', token);
@@ -209,7 +209,7 @@ describe('C3 — Identities Endpoints', () => {
     const sessionModel = require('../src/models/session.model');
     const config = require('../src/config');
     const db = require('../src/database/db');
-    const s = sessionModel.create(userId, config.session.maxAgeMs, null);
+    const _s = sessionModel.create(userId, config.session.maxAgeMs, null);
 
     // Use direct request with cookie — but cookie-session requires signed value.
     // Since we can't easily sign, let's verify the safety logic via DB:
