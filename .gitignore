@@ -27,7 +27,9 @@ cert.pem
 *.pem
 
 # ---- Media uploads (runtime generated) ----
-media/
+# Only the ROOT media/ directory (runtime uploads). Do NOT ignore
+# src/media/ — that is production code (media pipeline).
+/media/
 
 # ---- Test / coverage artifacts ----
 coverage/
@@ -44,8 +46,9 @@ Thumbs.db
 *.swp
 *.swo
 
-# ---- Build artifacts (not applicable, kept for safety) ----
+# ---- Build artifacts & Misc ----
 dist/
 build/
-# Build artifacts
 combined_project.txt
+# Debug / temporary output
+lint-errors.txt
