@@ -6,15 +6,16 @@
 //
 // Middleware order (critical):
 //   1. Security headers
-//   2. Body parsers (bounded)
-//   3. Session cookies (signed)
-//   4. Rate limiter
-//   5. attachSession (DB-validated)
-//   6. CSRF protection
-//   7. Static files
-//   8. Routes
-//   9. 404 handler
-//  10. Central error handler
+//   2. Request logging (H2)
+//   3. Body parsers (bounded)
+//   4. Session cookies (signed)
+//   5. Rate limiter
+//   6. attachSession (DB-validated)
+//   7. CSRF protection
+//   8. Static files
+//   9. Routes
+//  10. 404 handler
+//  11. Central error handler
 // ============================================================================
 
 const express = require('express');
@@ -72,6 +73,27 @@ app.use((req, res, next) => {
   
   next();
 });
+
+// ---------------------------------------------------------------------------
+// FIX (H2): Request logging
+// ---------------------------------------------------------------------------
+// Logs method + path + status + duration for every request.
+// NEVER logs headers, body, or query strings (would risk leaking secrets
+// like Authorization, x-csrf-token, or passwords in login forms).
+//
+// Skipped in test env to keep test output clean. In production, output
+// goes to stdout (Docker json-file driver with rotation).
+// ---------------------------------------------------------------------------
+if (config.env !== 'test') {
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      logger.info(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+    });
+    next();
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Body parsers (bounded)

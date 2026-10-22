@@ -91,4 +91,15 @@ describe('Security', () => {
     expect(typeof res.body.uptime).toBe('number');
     expect(res.body.version).toBeDefined();
   });
+
+  // ------------------------------------------------------------------------
+  // H2: Environment Configuration Guard
+  // ------------------------------------------------------------------------
+  test('H2: NODE_ENV is test (H2 logging is skipped by design)', async () => {
+    const config = require('../src/config');
+    expect(config.env).toBe('test');
+    // If NODE_ENV is ever accidentally set to 'development' in test runs,
+    // H2 logging would spam the console during tests. This guard catches
+    // that misconfiguration early.
+  });
 });
