@@ -21,7 +21,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,json,css,html}\"",
     "format:check": "prettier --check \"**/*.{js,json,css,html}\"",
-    "verify": "npm run lint && npm test && npm audit --audit-level=high",
+    "verify": "npm run lint && npm test",
+    "audit": "npm audit --audit-level=high",
+    "verify:full": "npm run verify && npm run audit",
     "test": "jest --runInBand --detectOpenHandles",
     "test:coverage": "jest --coverage --runInBand"
   },
@@ -53,8 +55,7 @@
   },
   "devDependencies": {
     "eslint": "^9.39.5",
-    "eslint-config-prettier": "^9.1.2",
-    "eslint-plugin-node": "^11.1.0",
+    "eslint-config-prettier": "^9.1.0",
     "globals": "^15.15.0",
     "jest": "^30.0.0",
     "prettier": "^3.9.10",
