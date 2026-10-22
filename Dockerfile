@@ -6,7 +6,18 @@ RUN apk add --no-cache python3 make g++ openssl-dev
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+
+# Use 'npm install' instead of 'npm ci' because the lock file generated
+# on Windows does not include wasm32 optional dependencies of sharp
+# (@emnapi/runtime, @emnapi/core). Those are only pulled in when npm
+# runs on Alpine (linuxmusl). This is a known npm 10 limitation:
+# cross-platform optional deps are not resolved unless the generating
+# platform needs them.
+#
+# 'npm install --omit=dev' is slightly slower than 'npm ci' but
+# reliably installs the correct platform-specific binaries on Alpine.
+# Versions are still pinned by package-lock.json.
+RUN npm install --omit=dev --no-audit --no-fund
 
 # ---------- Stage 2: runtime ----------
 FROM node:22-alpine AS runtime
