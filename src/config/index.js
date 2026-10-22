@@ -97,7 +97,14 @@ const config = {
 
   csrf: {
     secret: csrfSecret,
-    cookieName: 'csrf_token',
+    // FIX (C6): In production, use the __Host- prefix — browsers enforce:
+    //   - Secure attribute required (we already set secure in prod)
+    //   - No Domain attribute (we never set one)
+    //   - Path=/ (we set it)
+    // In dev/test, the Secure requirement would make the cookie unusable
+    // over HTTP, so we keep the plain name there. The middleware and
+    // frontend accept both names transparently.
+    cookieName: isProd ? '__Host-csrf_token' : 'csrf_token',
     headerName: 'x-csrf-token',
     fieldName: '_csrf',
   },

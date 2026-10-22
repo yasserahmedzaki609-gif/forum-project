@@ -53,7 +53,12 @@ async function getCsrfFor(agentOrApp) {
   const res = await agentOrApp.get('/auth/providers');
 
   const setCookie = res.headers['set-cookie'] || [];
-  const csrfCookie = setCookie.find((c) => c.startsWith('csrf_token='));
+  
+  // C6: accept both names (prod uses __Host-csrf_token, dev/test uses csrf_token)
+  const csrfCookie = setCookie.find((c) =>
+    c.startsWith('csrf_token=') || c.startsWith('__Host-csrf_token=')
+  );
+  
   const sessionCookie = setCookie.find((c) => c.startsWith('forum_session='));
 
   const cookies = [csrfCookie, sessionCookie]

@@ -31,7 +31,8 @@ async function api(url, options = {}) {
 
   const method = (opts.method || 'GET').toUpperCase();
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    const csrf = getCookie('csrf_token');
+    // C6: try both cookie names (prod uses __Host-csrf_token)
+    const csrf = getCookie('__Host-csrf_token') || getCookie('csrf_token');
     if (csrf) opts.headers['x-csrf-token'] = csrf;
   }
 
