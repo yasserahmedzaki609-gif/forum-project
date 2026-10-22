@@ -19,9 +19,20 @@ describe('C4 — Account Deletion', () => {
     return { agent, token };
   }
 
-  test('C4-1: requires authentication', async () => {
-    const res = await request(app).delete('/api/users/me');
+  test('C4-1: requires authentication (401 after CSRF passes)', async () => {
+    // Note: DELETE without a CSRF token returns 403 (CSRF middleware runs
+    // before requireAuth). To test the AUTH layer specifically, we must
+    // first obtain a CSRF token — the request then fails at requireAuth
+    // with 401, which is what this test verifies.
+    const anonAgent = request.agent(app);
+    const { token } = await getCsrfFor(anonAgent);
+
+    const res = await anonAgent
+      .delete('/api/users/me')
+      .set('x-csrf-token', token);
+
     expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/authentication/i);
   });
 
   test('C4-2: password user must supply currentPassword', async () => {
