@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD024 MD022 MD033 -->
 # Live Demo Script (7 Minutes)
 
 ## Setup (Before you start)
@@ -56,3 +57,60 @@ Open two terminal windows:
      -H "x-csrf-token: <token>" \
      -b "forum_session=<cookie>" \
      -d '{"title":"Hijacked","content":"Nope","categoryIds":[1],"updatedAt":"<old>"}'
+   ```
+
+## Step 7: Role Requests (P23) — 45 sec
+
+1. Register a second user: `candidate` / `candidate@e.com` / `password123`.
+2. As `candidate`: click **Request Moderator** (in moderation section).
+3. Fill reason: "I want to help moderate the forum" → Submit.
+4. Switch to `admin1` (Browser 1).
+5. In Moderation Dashboard → **Role Requests** → see `candidate`'s request.
+6. Click **Approve**.
+7. In DB: `SELECT role FROM users WHERE username='candidate'` → `moderator`.
+
+## Step 8: Audit Trail (C1) — 30 sec
+
+1. As `admin1`: `curl -k https://localhost:3000/api/moderation/audit-log` (with cookie + CSRF).
+2. Response shows:
+   - `post.status_change` (from Step 2's post approval)
+   - `role_request.approve` (from Step 7)
+3. Point out: append-only, previous + new status in `metadata` JSON.
+
+## Step 9: Connected Accounts (C3) — 30 sec
+
+1. As `admin1`: click **Connected Accounts** in header.
+2. If Google/GitHub configured → shows linked providers.
+3. If not configured → shows "No SSO providers linked."
+4. If linked → click **Unlink** → session revoked on other devices, new session created here.
+
+## Step 10: Account Deletion (C4) — 30 sec
+
+1. Register a throwaway user: `delme` / `delme@e.com` / `password123`.
+2. Scroll to footer → click **Delete Account**.
+3. Enter password → confirm.
+4. Verify: `SELECT id FROM users WHERE username='delme'` → empty.
+5. Attempt login → fails.
+
+## Step 11: Lint & Verify (F1-F3) — 15 sec
+
+In terminal:
+
+```bash
+npm run lint        # 0 problems
+npm run verify      # lint + test (180/180), exit 0
+```
+
+## Step 12: Fresh Clone Test (Security) — 15 sec
+
+```bash
+cd $env:TEMP
+git clone C:\dev\forum-project clone-test
+cd clone-test
+Test-Path src/media/index.js   # True
+Test-Path src/media/process.js # True
+```
+
+## Conclusion
+
+A fresh clone works — no missing files. The project is fully production-ready, secure, and comprehensively tested.

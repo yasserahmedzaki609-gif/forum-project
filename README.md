@@ -5,7 +5,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![SQLite](https://img.shields.io/badge/sqlite-3%20%2B%20SQLCipher-blue)](https://www.zetetic.net/sqlcipher/)
 [![Express](https://img.shields.io/badge/express-5-lightgrey)](https://expressjs.com/)
-[![Tests](https://img.shields.io/badge/tests-161%2F161%20passing-success)](#running-tests)
+[![Tests](https://img.shields.io/badge/tests-180%2F180%20passing-success)](#running-tests)
 [![License](https://img.shields.io/badge/license-ISC-lightgrey)](./LICENSE)
 
 ---
@@ -20,58 +20,58 @@
 
 ### F01 — Base Forum
 
-- **Auth**: Register, Login, Logout. bcrypt (cost 12).
-- **Sessions**: Server-side sessions (UUID-based). HttpOnly, SameSite=Lax.
-- **Community**: Posts (with categories), comments, reactions (likes/dislikes).
-- **Filters**: By category, "My Posts", "My Likes". Pagination.
-- **Security**: CSRF, XSS escapeHtml, SQLi prepared statements, Rate Limiting.
+* **Auth**: Register, Login, Logout. bcrypt (cost 12).
+* **Sessions**: Server-side sessions (UUID-based). HttpOnly, SameSite=Lax.
+* **Community**: Posts (with categories), comments, reactions (likes/dislikes).
+* **Filters**: By category, "My Posts", "My Likes". Pagination.
+* **Security**: CSRF, XSS escapeHtml, SQLi prepared statements, Rate Limiting.
 
 ### F02 — SSO Authentication (Google & GitHub)
 
-- **Google OIDC**: Authorization Code + PKCE (S256) + nonce.
-- **GitHub OAuth2**: Raw OAuth2 + PKCE + primary email resolution.
-- **Account Linking**: Strict rejection of unverified emails (409).
+* **Google OIDC**: Authorization Code + PKCE (S256) + nonce.
+* **GitHub OAuth2**: Raw OAuth2 + PKCE + primary email resolution.
+* **Account Linking**: Strict rejection of unverified emails (409).
 
 ### F03 — Verified Media Upload
 
-- **UI**: File input on post creation + "Add Image" button on owned posts.
-- **Streaming Intake**: busboy (5MB cap).
-- **Magic Byte Detection**: file-type (no MIME spoofing).
-- **Processing**: sharp decode/re-encode (destroys polyglots/RCE, strips EXIF).
-- **Storage**: SHA-256 addressed, sharded, atomic writes.
+* **UI**: File input on post creation + "Add Image" button on owned posts.
+* **Streaming Intake**: busboy (5MB cap).
+* **Magic Byte Detection**: Custom magic-byte detector (no MIME spoofing, CVE-free).
+* **Processing**: sharp decode/re-encode (destroys polyglots/RCE, strips EXIF).
+* **Storage**: SHA-256 addressed, sharded, atomic writes.
 
 ### F04 — Session Hardening & Security
 
-- **UI**: Change Password modal (session rotation after change).
-- **Session Rotation**: New UUID on login/password change.
-- **Global Logout**: Single-session policy.
-- **UA Binding**: Session tied to User-Agent hash.
-- **Timeouts**: Idle 2h / Absolute 7d.
-- **Docker Hardening**: Read-only FS, tmpfs, non-root, cap_drop: ALL.
-- **TLS 1.3**: Mozilla Intermediate profile.
+* **UI**: Change Password modal (session rotation after change).
+* **Session Rotation**: New UUID on login/password change.
+* **Global Logout**: Single-session policy.
+* **UA Binding**: Session tied to User-Agent hash.
+* **Timeouts**: Idle 2h / Absolute 7d.
+* **Docker Hardening**: Read-only FS, tmpfs, non-root, cap_drop: ALL.
+* **TLS 1.3**: Mozilla Intermediate profile.
 
 ### F05 — Moderation & Roles
 
-- **UI**: "Report" button on every post/comment (non-owner) + mod dashboard.
-- **RBAC**: `user`, `moderator`, `admin`.
-- **Bootstrapping**: First registered user = admin.
-- **Approval Queue**: Moderators approve/reject pending content.
-- **Reports**: User reports, moderator resolves/dismisses.
+* **UI**: "Report" button on every post/comment (non-owner) + mod dashboard.
+* **RBAC**: `user`, `moderator`, `admin`.
+* **Bootstrapping**: First registered user = admin.
+* **Approval Queue**: Moderators approve/reject pending content.
+* **Reports**: User reports, moderator resolves/dismisses.
 
 ### F06 — Advanced Features
 
-- **Owned Editing**: Users edit/delete their own content.
-- **Optimistic Locking**: `updated_at` check → 409 on stale edits.
-- **Notifications**: Bell icon + unread count, polled.
-- **Activity Logs**: Personal history of creations/edits.
+* **Owned Editing**: Users edit/delete their own content.
+* **Optimistic Locking**: `updated_at` check → 409 on stale edits.
+* **Notifications**: Bell icon + unread count, polled.
+* **Activity Logs**: Personal history of creations/edits.
 
 ### P21 — Live Database Encryption (Bonus)
 
-- **Encryption at rest**: SQLCipher via `better-sqlite3-multiple-ciphers`.
-- **Password-driven**: Set `DB_PASSWORD` in `.env` to enable.
-- **Backup**: `npm run db:backup` → encrypted backup + manifest.
-- **Restore**: `npm run db:restore <path>` → verified restore.
-- **Tests**: `tests/f04.db-encryption.test.js` (5 tests).
+* **Encryption at rest**: SQLCipher via `better-sqlite3-multiple-ciphers`.
+* **Password-driven**: Set `DB_PASSWORD` in `.env` to enable.
+* **Backup**: `npm run db:backup` → encrypted backup + manifest.
+* **Restore**: `npm run db:restore <path>` → verified restore.
+* **Tests**: `tests/f04.db-encryption.test.js` (5 tests).
 
 ---
 
@@ -87,7 +87,7 @@
 | OIDC/OAuth | `openid-client` v6 |
 | Multipart Intake | `busboy` v1 |
 | Image Processing | `sharp` v0.35 |
-| File Detection | `file-type` v16 (CJS) |
+| File Detection | Custom magic-byte detector (CVE-free) |
 | Rate Limiting | `express-rate-limit` v8 (IPv6-safe) |
 | Tests | Jest 30 + Supertest 7 |
 | Container | Docker (Alpine, multi-stage, non-root) |
@@ -117,7 +117,7 @@ forum-project/
 │   ├── script.js               # + media/password/report logic
 │   ├── style.css
 │   └── favicon.svg
-├── tests/                      # 23 suites, 161 tests (Jest + Supertest)
+├── tests/                      # 26 suites, 180 tests (Jest + Supertest)
 ├── docs/
 ├── scripts/
 │   ├── backup-db.js            # P21
@@ -137,14 +137,14 @@ forum-project/
 
 Managed by `src/database/schema.js`. Key tables:
 
-- `users`: `role` (user/mod/admin)
-- `sessions`: `last_seen_at`, `user_agent_hash` (F04)
-- `identities`: Google/GitHub links (F02)
-- `posts` & `comments`: `status`, `updated_at` (F06)
-- `reactions`: Unified likes/dislikes
-- `media`: SHA-256 addressed images (F03)
-- `reports`: Moderation queue (F05)
-- `notifications` & `activity_logs`: F06
+* `users`: `role` (user/mod/admin)
+* `sessions`: `last_seen_at`, `user_agent_hash` (F04)
+* `identities`: Google/GitHub links (F02)
+* `posts` & `comments`: `status`, `updated_at` (F06)
+* `reactions`: Unified likes/dislikes
+* `media`: SHA-256 addressed images (F03)
+* `reports`: Moderation queue (F05)
+* `notifications` & `activity_logs`: F06
 
 *(See `docs/ERD.md` for the full Mermaid diagram).*
 
@@ -154,8 +154,8 @@ Managed by `src/database/schema.js`. Key tables:
 
 ### Prerequisites
 
-- Node.js ≥ 22
-- Docker (optional, required for F04 hardening and P21 demonstration)
+* Node.js ≥ 22
+* Docker (optional, required for F04 hardening and P21 demonstration)
 
 ### Local Development (with encryption)
 
@@ -230,7 +230,7 @@ head -c 16 data/forum.db | od -c
 ## Running Tests
 
 ```bash
-npm test             # 23 suites, 161 tests (includes P21 + Week-1 + Week-2 fixes)
+npm test             # 26 suites, 180 tests (includes P21 + Week-1/2/3 fixes)
 npm test -- f04      # specific feature
 npm test -- db-encryption  # P21 only
 ```
@@ -239,15 +239,15 @@ npm test -- db-encryption  # P21 only
 
 ## Security Highlights
 
-- **XSS**: Output encoding + strict CSP headers.
-- **CSRF**: HMAC-signed double-submit cookies.
-- **SQLi**: 100% prepared statements.
-- **Session Hijacking**: User-Agent binding + IP-based rate limits.
-- **Brute Force**: Per-username login limits (regardless of IP).
-- **Account Takeover**: Verified email required for SSO linking.
-- **RCE via Uploads**: Decode + re-encode destroys payloads.
-- **DoS**: 10kb body limit, 5MB upload cap, strict timeouts.
-- **Data at rest (P21)**: SQLCipher encryption with `DB_PASSWORD`.
+* **XSS**: Output encoding + strict CSP headers.
+* **CSRF**: HMAC-signed double-submit cookies.
+* **SQLi**: 100% prepared statements.
+* **Session Hijacking**: User-Agent binding + IP-based rate limits.
+* **Brute Force**: Per-username login limits (regardless of IP).
+* **Account Takeover**: Verified email required for SSO linking.
+* **RCE via Uploads**: Decode + re-encode destroys payloads.
+* **DoS**: 10kb body limit, 5MB upload cap, strict timeouts.
+* **Data at rest (P21)**: SQLCipher encryption with `DB_PASSWORD`.
 
 ---
 
@@ -264,15 +264,46 @@ npm test -- db-encryption  # P21 only
 | **F04** | Security & Sessions | ✅ Complete |
 | **F05** | Moderation | ✅ Complete |
 | **F06** | Advanced Features | ✅ Complete |
-| **Total** | **Full Stack Community + P21 + Week-1 + Week-2 fixes** | **✅ 161/161 Tests** |
+| **Total** | **Full Stack Community + P21 + Week-1/2/3 fixes** | **✅ 180/180 Tests** |
 
 ---
 
 ## Week-2 Features (v1.3.0)
 
-- **P23 — Role Requests**: complete workflow for requesting/reviewing role promotions.
-- **P24 — Conditional Moderation Adapter**: content starts `pending` when moderation is installed, `approved` otherwise.
-- **P25 — Transactional Events**: comment/post/reaction writes are atomic.
-- **P26 — Index Observatory**: `npm run db:observatory` analyzes query plans.
-- **C1 — Audit Trail**: every moderation action is logged (append-only).
-- **C3 — Identities Management**: users can list and unlink SSO providers with session revocation.
+* **P23 — Role Requests**: complete workflow for requesting/reviewing role promotions.
+* **P24 — Conditional Moderation Adapter**: content starts `pending` when moderation is installed, `approved` otherwise.
+* **P25 — Transactional Events**: comment/post/reaction writes are atomic.
+* **P26 — Index Observatory**: `npm run db:observatory` analyzes query plans.
+* **C1 — Audit Trail**: every moderation action is logged (append-only).
+* **C3 — Identities Management**: users can list and unlink SSO providers with session revocation.
+
+---
+
+## Week-3 Features (v1.4.0)
+
+### UI Completions
+
+* **Comment Edit/Delete UI**: modal + owner-only buttons (D1).
+* **Admin Categories UI**: add/list categories from moderation dashboard (D2).
+* **Role Management UI**: admin-only user list + role change dropdown (D3).
+* **Pending Comments Visible to Author**: author sees own pending (D4).
+* **Connected Accounts**: `/me` includes identities array (D5).
+
+### Security & Ops
+
+* **Account Deletion** (`DELETE /api/users/me`) with last-admin protection (C4).
+* **Session Throttling**: `last_seen_at` updated 1× per 5 min (C5).
+* **`__Host-` CSRF Cookie**: production-only prefix (C6).
+* **`robots.txt` + `security.txt`**: RFC 9116 (C8).
+* **Request Logging**: method + path + status + duration (H2).
+
+### Code Quality
+
+* **ESLint 9 + Prettier 3**: 0 lint problems (F1).
+* **`engines: node >=22`** (F2).
+* **`npm run verify`**: lint + test (offline, deterministic) (F3).
+
+### Security
+
+* Replaced `file-type@16` (CVE-2026-31808) with custom magic-byte detector.
+* Documented `uuid@9` risk acceptance in `SECURITY.md`.

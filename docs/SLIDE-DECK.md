@@ -4,12 +4,13 @@ theme: default
 paginate: true
 backgroundColor: #f4f7f6
 ---
+<!-- markdownlint-disable MD024 MD022 MD033 -->
 
 # Forum Project: Full Stack Community
 
 ## From Authentication to Advanced Features (F01 → F06 + P21)
 
-Prepared by:  الجنرال ياسر
+Prepared by: الجنرال ياسر
 Academy Roadmap Final Project
 
 ---
@@ -24,7 +25,7 @@ Academy Roadmap Final Project
 - **F06**: Advanced Features (Editing, Notifications, Activity)
 - **P21**: Live Database Encryption (SQLCipher Bonus)
 
-**Result**: 23 Test Suites | 161 Tests | 0 Vulnerabilities
+**Result**: 26 Test Suites | 180 Tests | 0 Vulnerabilities
 
 ---
 
@@ -56,7 +57,7 @@ We used a strict Layered Architecture:
 Uploading files is dangerous. We built a 4-stage pipeline:
 
 1. **Busboy**: Streaming intake (limits memory).
-2. **File-type**: Magic byte detection (no MIME spoofing).
+2. **File Detection**: Custom magic-byte detector (no MIME spoofing, CVE-free).
 3. **Sharp**: Decodes & re-encodes to WebP. Destroys polyglots, strips EXIF.
 4. **Storage**: Atomic write, SHA-256 addressed, directory sharding.
 
@@ -101,10 +102,39 @@ Uploading files is dangerous. We built a 4-stage pipeline:
 
 ## Quality Assurance
 
-- **23 Test Suites** / **161 Tests** (Jest + Supertest).
+- **26 Test Suites** / **180 Tests** (Jest + Supertest).
+- **0 ESLint problems** (ESLint 9 flat config + Prettier 3).
+- **`npm run verify`** = lint + test (offline, deterministic).
 - **In-Memory DB**: Tests run isolated in `:memory:` SQLite.
 - **Encrypted DB**: Tests use a temp file with SQLCipher (P21).
 - **Security Check**: `npm audit` returns 0 vulnerabilities.
+
+---
+
+## Week-3 Additions (v1.4.0)
+
+### UI Completions
+
+- Comment Edit/Delete modal
+- Admin Categories Management
+- Role Management UI
+- Pending Comments visible to author
+- `/me` includes identities
+
+### Security & Ops
+
+- Account Deletion with last-admin protection
+- Session throttling (5min)
+- `__Host-` CSRF cookie (production)
+- `robots.txt` + `security.txt`
+- Request logging
+
+### Code Quality
+
+- ESLint 9 + Prettier 3 → **0 problems**
+- `npm run verify` split (offline)
+- `file-type` CVE removed (custom detector)
+- Fresh clone verified
 
 ---
 
