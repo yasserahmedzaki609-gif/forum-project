@@ -45,7 +45,28 @@ const reactToPostTx = db.transaction((userId, postId, value, postOwnerId) => {
   return result;
 });
 
+// ---------------------------------------------------------------------------
+// P25 (extended): Atomic updatePost (content + categories + activity log)
+// ---------------------------------------------------------------------------
+const updatePostTx = db.transaction(
+  (postId, userId, title, content, categoryIds, expectedUpdatedAt) => {
+    const ok = postModel.update(
+      postId,
+      userId,
+      title,
+      content,
+      categoryIds,
+      expectedUpdatedAt
+    );
+    if (!ok) return false;
+
+    activityModel.log(userId, 'post_edit', 'post', postId);
+    return true;
+  }
+);
+
 module.exports = {
   createPost: createPostTx,
   reactToPost: reactToPostTx,
+  updatePost: updatePostTx,
 };

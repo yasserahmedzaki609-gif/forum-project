@@ -4,13 +4,16 @@
 
 const postModel = require('../models/post.model');
 const categoryModel = require('../models/category.model');
-const postService = require('../services/post.service'); // ← جديد (P25 Service Layer)
-const activityModel = require('../models/activity.model'); // ← لا يزال مستخدماً في updatePost
+const postService = require('../services/post.service'); // ← P25 Service Layer
 const { HttpError } = require('../middleware/errorHandler');
 const config = require('../config');
 
-// ملاحظة: تم إزالة reactionModel و notificationModel لأن منطقهما انتقل الآن
-// إلى داخل postService لضمان الذرية (Atomicity)، مما يمنع تحذيرات ESLint.
+
+// ملاحظة:
+// - تم إزالة reactionModel و notificationModel لأن منطقهما انتقل إلى
+//   داخل postService لضمان الذرية (Atomicity).
+// - تسجيل النشاط (activity log) في updatePost أصبح يتم داخل
+//   postService.updatePost (معاملة واحدة مع التحديث).
 
 // ---------------------------------------------------------------------------
 // GET /api/posts
@@ -70,7 +73,8 @@ function getPost(req, res, next) {
     if (!post) throw new HttpError(404, 'Post not found');
 
     const isOwner = req.user && req.user.id === post.user_id;
-    const isMod = req.user && (req.user.role === 'moderator' || req.user.role === 'admin');
+    const isMod =
+      req.user && (req.user.role === 'moderator' || req.user.role === 'admin');
 
     // Security: Hide pending posts from unauthorized users by returning 404
     if (post.status !== 'approved' && !isOwner && !isMod) {
@@ -101,7 +105,12 @@ function createPost(req, res, next) {
       }
     }
 
-    const postId = postService.createPost(req.user.id, title.trim(), content.trim(), categoryIds);
+    const postId = postService.createPost(
+      req.user.id,
+      title.trim(),
+      content.trim(),
+      categoryIds
+    );
 
     res.status(201).json({ id: postId });
   } catch (err) {
@@ -111,6 +120,9 @@ function createPost(req, res, next) {
 
 // ---------------------------------------------------------------------------
 // PUT /api/posts/:postId — F06 Edit (with optimistic locking)
+// ---------------------------------------------------------------------------
+// P25 (extended): التحديث + تسجيل النشاط أصبحا داخل معاملة واحدة
+// عبر postService.updatePost، فلا يمكن أن يُحفظ تعديل بدون سجل نشاط.
 // ---------------------------------------------------------------------------
 function updatePost(req, res, next) {
   try {
@@ -127,7 +139,7 @@ function updatePost(req, res, next) {
 
     const { title, content, categoryIds, updatedAt } = req.body;
 
-    const ok = postModel.update(
+    const ok = postService.updatePost(
       postId,
       req.user.id,
       title.trim(),
@@ -137,11 +149,11 @@ function updatePost(req, res, next) {
     );
 
     if (!ok) {
-      throw new HttpError(409, 'Post was modified by someone else. Please reload.');
+      throw new HttpError(
+        409,
+        'Post was modified by someone else. Please reload.'
+      );
     }
-
-    // F06: Log activity (Note: Ideally, this should also move to postService for full atomicity)
-    activityModel.log(req.user.id, 'post_edit', 'post', postId);
 
     res.json({ ok: true });
   } catch (err) {
@@ -192,7 +204,12 @@ function reactToPost(req, res, next) {
       throw new HttpError(400, 'Invalid reaction action');
     }
 
-    const result = postService.reactToPost(req.user.id, postId, value, post.user_id);
+    const result = postService.reactToPost(
+      req.user.id,
+      postId,
+      value,
+      post.user_id
+    );
 
     res.json(result);
   } catch (err) {
