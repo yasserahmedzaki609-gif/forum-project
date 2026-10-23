@@ -1,4 +1,3 @@
-
 # Architecture
 
 ## Layering
@@ -9,8 +8,8 @@
 │   - HTML / CSS / Vanilla JS                         │
 │   - No frontend framework (per constraints)         │
 └─────────────────────────────────────────────────────┘
-                       │ HTTPS
-                       ▼
+                        │ HTTPS
+                        ▼
 ┌─────────────────────────────────────────────────────┐
 │  Express App (src/app.js)                           │
 │                                                     │
@@ -23,15 +22,15 @@
 │    6. csrfProtection                                │
 │    7. Static files                                  │
 └─────────────────────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────┐
 │  Routes (src/routes/*)                              │
 │   - URL → Controller mapping                        │
 │   - apply requireAuth / validators / rate limiters  │
 └─────────────────────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────┐
 │  Controllers (src/controllers/*)                    │
 │   - HTTP-specific logic                             │
@@ -39,21 +38,22 @@
 │   - Call services/models                            │
 │   - Format responses                                │
 └─────────────────────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────┐
 │  Services & Models (src/auth/*, src/models/*)       │
 │   - Business logic                                  │
 │   - DB queries (prepared statements)                │
 │   - Transactions                                    │
 └─────────────────────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────┐
 │  SQLite (better-sqlite3)                            │
 │   - WAL mode                                        │
 │   - Foreign keys enforced                           │
 └─────────────────────────────────────────────────────┘
+
 ```
 
 ## Why each layer exists
@@ -86,6 +86,7 @@ AuthController.register
   │
   ▼
 201 { id, username }
+
 ```
 
 ### Flow 2: User logs in
@@ -106,6 +107,7 @@ AuthController.login
   │
   ▼
 200 { id, username } + Set-Cookie: forum_session=[signed]
+
 ```
 
 ### Flow 3: SSO login via Google
@@ -125,7 +127,7 @@ ssoController.start
   │
   ▼
 302 → Google authorization endpoint
-      (accounts.google.com/o/oauth2/v2/auth?...)
+      ([accounts.google.com/o/oauth2/v2/auth](https://accounts.google.com/o/oauth2/v2/auth)?...)
 
 [user authorizes on Google]
 
@@ -152,6 +154,7 @@ ssoController.callback
   │
   ▼
 302 → redirect_to (or /)
+
 ```
 
 ### Flow 4: Protected resource
@@ -176,6 +179,7 @@ PostsController.createPost
   │
   ▼
 201 { id }
+
 ```
 
 ### Flow 5: Image upload (F03)
@@ -207,24 +211,25 @@ MediaController.uploadPostMedia
   │
   ▼
 201 { id, url, width, height }
+
 ```
 
 ## Design decisions
 
 ### Why server-side sessions?
 
-- Cookie carries only an opaque UUID.
-- Logout revokes on the server instantly.
-- Rotation on login prevents fixation.
-- TTL enforced in DB, not trusted from the cookie.
-- Cookies are signed (HMAC) via `cookie-session` so tampering fails.
+* Cookie carries only an opaque UUID.
+* Logout revokes on the server instantly.
+* Rotation on login prevents fixation.
+* TTL enforced in DB, not trusted from the cookie.
+* Cookies are signed (HMAC) via `cookie-session` so tampering fails.
 
 ### Why SQLite + migrations?
 
-- Zero external dependencies for the academy environment.
-- WAL mode gives concurrent reads without writer blocking.
-- Migration runner in `src/database/schema.js` is idempotent: safe on every boot.
-- `schema_migrations` table records applied migrations so reruns skip them.
+* Zero external dependencies for the academy environment.
+* WAL mode gives concurrent reads without writer blocking.
+* Migration runner in `src/database/schema.js` is idempotent: safe on every boot.
+* `schema_migrations` table records applied migrations so reruns skip them.
 
 #### Single source of truth
 
@@ -233,21 +238,21 @@ All database code lives under `src/database/` — nowhere else:
 | File | Responsibility |
 | --- | --- |
 | `src/database/db.js` | Singleton connection + PRAGMAs (`foreign_keys = ON`, `journal_mode = WAL`) |
-| `src/database/schema.js` | Ordered list of migrations (001–013) + the runner |
+| `src/database/schema.js` | Ordered list of migrations (001–015) + the runner |
 | `src/database/seed.js` | Idempotent default data (4 categories) |
 
 There is intentionally **no `database.js` at the project root**. A leftover
 prototype from before the layering refactor was removed because it:
 
 1. Opened a **second connection** on a different path
-   (`__dirname/forum.db` instead of `./data/forum.db`), silently causing
-   "my data disappeared" confusion.
+(`__dirname/forum.db` instead of `./data/forum.db`), silently causing
+"my data disappeared" confusion.
 2. Defined a **stale, incompatible schema** — no `sessions`, no `identities`,
-   no `oauth_states`, no `media`, no `reports`, no `notifications`, no
-   `activity_logs`, and a `likes` table with a `post_id` column instead of
-   the unified `reactions(target_type, target_id, value)`.
+no `oauth_states`, no `media`, no `reports`, no `notifications`, no
+`activity_logs`, and a `likes` table with a `post_id` column instead of
+the unified `reactions(target_type, target_id, value)`.
 3. Was **never copied into the Docker image**, proving the running app
-   already lived without it.
+already lived without it.
 
 **Rule going forward:** any schema change MUST be added as a new numbered
 migration in `src/database/schema.js`. Never add `db.exec('CREATE TABLE ...')`
@@ -255,39 +260,39 @@ anywhere else in the codebase.
 
 ### Why `openid-client` v6?
 
-- OpenID Certified implementation.
-- Native PKCE + nonce + ID token verification.
-- Uses `fetch` (no HTTP library mismatch).
-- Discovers issuer metadata automatically (Google).
+* OpenID Certified implementation.
+* Native PKCE + nonce + ID token verification.
+* Uses `fetch` (no HTTP library mismatch).
+* Discovers issuer metadata automatically (Google).
 
 ### Why not Passport?
 
-- Passport strategies add a layer of indirection.
-- For only two providers and fine-grained control over linking, `openid-client` + raw OAuth2 (GitHub) is simpler and more auditable.
+* Passport strategies add a layer of indirection.
+* For only two providers and fine-grained control over linking, `openid-client` + raw OAuth2 (GitHub) is simpler and more auditable.
 
 ### Why double-submit CSRF instead of a library?
 
-- No extra dependency.
-- Constant-time comparison.
-- HMAC-signed cookie (can't be forged).
-- Token bound to the session lifetime.
+* No extra dependency.
+* Constant-time comparison.
+* HMAC-signed cookie (can't be forged).
+* Token bound to the session lifetime.
 
 ### Why raw OAuth2 for GitHub?
 
-- GitHub does **not** support OIDC discovery.
-- No ID token, so no nonce validation is possible — but PKCE + state still work.
-- We fetch `/user` and `/user/emails` explicitly and treat the primary email as verified.
+* GitHub does **not** support OIDC discovery.
+* No ID token, so no nonce validation is possible — but PKCE + state still work.
+* We fetch `/user` and `/user/emails` explicitly and treat the primary email as verified.
 
 ### Why decode + re-encode for uploads?
 
-- Re-encoding writes a **brand-new bitmap** from raw pixel data.
-- Any appended bytes, EXIF tricks, or polyglot payloads are destroyed.
-- This is the single most important defense against RCE via images.
-- `sharp` also strips EXIF automatically, protecting user privacy.
+* Re-encoding writes a **brand-new bitmap** from raw pixel data.
+* Any appended bytes, EXIF tricks, or polyglot payloads are destroyed.
+* This is the single most important defense against RCE via images.
+* `sharp` also strips EXIF automatically, protecting user privacy.
 
 ### Why SHA-256 addressed storage?
 
-- Deduplication: identical uploads share one file.
-- Integrity: verifiable on backup/restore.
-- Path safety: hex only — no `../`, no shell metacharacters.
-- Directory sharding (`ab/cd/`) prevents one directory with millions of entries.
+* Deduplication: identical uploads share one file.
+* Integrity: verifiable on backup/restore.
+* Path safety: hex only — no `../`, no shell metacharacters.
+* Directory sharding (`ab/cd/`) prevents one directory with millions of entries.

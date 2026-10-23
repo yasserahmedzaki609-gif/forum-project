@@ -14,6 +14,9 @@ erDiagram
     users ||--o{ notifications   : "receives"
     users ||--o{ notifications   : "triggers (actor)"
     users ||--o{ activity_logs   : "performs"
+    users ||--o{ role_requests   : "requests"
+    users ||--o{ role_requests   : "reviews (reviewed_by)"
+    users ||--o{ moderation_logs : "acts as (actor)"
 
     posts ||--o{ comments        : "contains"
     posts ||--o{ post_categories : "tagged"
@@ -151,30 +154,67 @@ erDiagram
         INTEGER category_id PK,FK
     }
 
+    role_requests {
+        INTEGER id PK
+        INTEGER user_id FK
+        TEXT    requested_role "moderator|admin"
+        TEXT    reason
+        TEXT    status "pending|approved|rejected"
+        INTEGER reviewed_by FK "nullable, SET NULL"
+        DATETIME reviewed_at
+        DATETIME created_at
+    }
+
+    moderation_logs {
+        INTEGER id PK
+        INTEGER actor_id FK "nullable, SET NULL"
+        TEXT    action "post.status_change|comment.status_change|user.role_change|report.status_change|role_request.approve|role_request.reject"
+        TEXT    target_type "post|comment|user|report|role_request"
+        INTEGER target_id
+        TEXT    metadata "JSON: previous + new state"
+        DATETIME created_at
+    }
+
     schema_migrations {
         INTEGER id PK
         TEXT    name UK
         DATETIME applied_at
     }
+
 ```
 
 ## Table-by-Table Explanations
 
 ### Core & Authentication
-- **`users`**: Stores local accounts. The `role` column enables RBAC (User, Moderator, Admin). SSO-only users have a password starting with `!`, making local login impossible.
-- **`sessions`**: Server-side session store. Includes `last_seen_at` for idle timeouts and `user_agent_hash` to prevent session hijacking (cookie theft).
-- **`identities`**: Links external providers (Google, GitHub) to local users. Enables multiple SSO methods per account.
-- **`oauth_states`**: Single-use, TTL-bounded store for OAuth `state`, `code_verifier` (PKCE), and `nonce`.
+
+* **`users`**: Stores local accounts. The `role` column enables RBAC (User, Moderator, Admin). SSO-only users have a password starting with `!`, making local login impossible.
+* **`sessions`**: Server-side session store. Includes `last_seen_at` for idle timeouts and `user_agent_hash` to prevent session hijacking (cookie theft).
+* **`identities`**: Links external providers (Google, GitHub) to local users. Enables multiple SSO methods per account.
+* **`oauth_states`**: Single-use, TTL-bounded store for OAuth `state`, `code_verifier` (PKCE), and `nonce`.
 
 ### Community Content
-- **`posts` & `comments`**: Core content. The `status` column allows moderators to approve or reject content. The `updated_at` column enables optimistic locking (preventing stale edits).
-- **`categories` & `post_categories`**: Many-to-many relationship for subforums.
-- **`reactions`**: Unified table for likes/dislikes on both posts and comments.
+
+* **`posts` & `comments**`: Core content. The `status` column allows moderators to approve or reject content. The `updated_at` column enables optimistic locking (preventing stale edits).
+* **`categories` & `post_categories**`: Many-to-many relationship for subforums.
+* **`reactions`**: Unified table for likes/dislikes on both posts and comments.
 
 ### Moderation & Advanced Features (F05 & F06)
-- **`reports`**: User-generated reports against posts or comments. Moderators can resolve or dismiss them.
-- **`notifications`**: Triggered when a user likes or comments on someone else's content. Links an `actor` (who did it) to a `user` (who receives it).
-- **`activity_logs`**: Tracks user actions (post creation, edits, comments) for the personal activity feed.
+
+* **`reports`**: User-generated reports against posts or comments. Moderators can resolve or dismiss them.
+* **`notifications`**: Triggered when a user likes or comments on someone else's content. Links an `actor` (who did it) to a `user` (who receives it).
+* **`activity_logs`**: Tracks user actions (post creation, edits, comments) for the personal activity feed.
 
 ### Media
-- **`media`**: Stores uploaded images. Paths are SHA-256 addressed (content-addressed storage). `post_id` is nullable to support standalone avatars.
+
+* **`media`**: Stores uploaded images. Paths are SHA-256 addressed (content-addressed storage). `post_id` is nullable to support standalone avatars.
+
+### Week-2 & Week-3 Tables
+
+* **`role_requests`** (P23): Users request promotion to `moderator`/`admin`. Admins review requests via the moderation dashboard. `reviewed_by` uses `ON DELETE SET NULL` so that if the reviewing admin's account is deleted, the audit trail is preserved (with `reviewed_by = NULL`).
+* **`moderation_logs`** (C1): Append-only audit trail of every moderation action. Each row captures:
+* `actor_id` — who performed the action (NULL if the actor's account was deleted; the action remains for audit purposes).
+* `action` — a namespaced string (e.g., `post.status_change`).
+* `target_type` + `target_id` — what was acted upon.
+* `metadata` — JSON with `previous_status` and `new_status` (or equivalent).
+
+**Never updated. Never deleted.** This is by design — for legal and accountability reasons, moderation history must be immutable.

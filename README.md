@@ -71,7 +71,7 @@
 * **Password-driven**: Set `DB_PASSWORD` in `.env` to enable.
 * **Backup**: `npm run db:backup` → encrypted backup + manifest.
 * **Restore**: `npm run db:restore <path>` → verified restore.
-* **Tests**: `tests/f04.db-encryption.test.js` (5 tests).
+* **Tests**: `tests/f04.db-encryption.test.js` (6 tests).
 
 ---
 

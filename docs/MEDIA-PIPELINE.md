@@ -1,4 +1,3 @@
-
 # Media Upload Pipeline
 
 ## Purpose
@@ -32,7 +31,7 @@ Client POST (multipart/form-data)
     │  Buffer (≤ 5 MB)
     ▼
 ┌─────────────────────────────────────────────┐
-│ 2. Magic-byte detection (file-type)         │
+│ 2. Magic-byte detection (src/utils/imageType.js) │
 │    - Read first bytes of buffer             │
 │    - Accept only: jpeg, png, webp, gif      │
 │    - Reject: svg, pdf, exe, zip, everything │
@@ -68,6 +67,7 @@ Client POST (multipart/form-data)
     │
     ▼
 201 { id, url, width, height }
+
 ```
 
 ## Why re-encode?
@@ -80,6 +80,7 @@ Consider a JPEG file that is:
 
 ```text
 [valid JPEG bytes] [PHP webshell] [valid JPEG trailer]
+
 ```
 
 A naive app that only checks magic bytes would accept it. If the file is ever
@@ -91,7 +92,20 @@ clean file containing only the visible image.
 
 The client sends `Content-Type: image/jpeg` for any file. Attackers rename
 `shell.php` to `shell.jpg` and set the header. Only magic bytes reveal the
-truth, and only a full decode confirms it.
+truth, and only a full decode confirms it. For the CVE that motivated removing file-type@16, see SECURITY.md → Accepted Risks / Resolved.
+
+## Why a custom magic-byte detector (not file-type)?
+
+`file-type@16` was originally used, but it is affected by **CVE-2026-31808** (infinite loop in the ASF parser on malformed 55-byte input — a DoS vector). Upgrading to v22 requires migrating the codebase to ESM (v17+ are ESM-only), which is incompatible with our CommonJS setup.
+
+Since we only accept 4 formats (JPEG, PNG, WebP, GIF), a 50-line magic-byte checker (`src/utils/imageType.js`) is:
+
+- **Faster** (~10x)
+- **Safer** (no parser = no parser CVEs)
+
+- **Simpler to audit**
+
+See `docs/SECURITY.md` → "Accepted Risks" for the full decision record.
 
 ## Why WebP?
 
