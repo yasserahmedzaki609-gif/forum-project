@@ -1,7 +1,7 @@
 # Project Audit & Compliance Checklist
 
 Mapping of the Anas Roadmap (P01–P26, F01–F06) to the implementation.
-Updated for **v1.4.0** (Week-1 + Week-2 + Week-3 complete).
+Updated for **v1.4.1** (Week-1 + Week-2 + Week-3 complete).
 
 ## Roadmap Compliance (F01 → F06)
 
