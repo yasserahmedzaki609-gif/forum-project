@@ -44,7 +44,7 @@ app.set('trust proxy', 1);
 // Security headers
 // ---------------------------------------------------------------------------
 // Applied to every response. CSP is intentionally strict:
-//   - default-src 'self'        → only same-origin resources by default
+//   - default-src 'self'         → only same-origin resources by default
 //   - script-src 'self'         → no inline scripts, no remote scripts
 //   - style-src 'self' + inline → current stylesheet uses inline style attrs
 //   - img-src 'self' + data:    → our media route + data URIs (icons)
@@ -177,6 +177,16 @@ app.get('/health', (req, res) => {
       error: err.message,
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Explicit route for security.txt
+// ---------------------------------------------------------------------------
+app.get('/.well-known/security.txt', (req, res) => {
+  res.sendFile(
+    path.join(__dirname, '..', 'public', '.well-known', 'security.txt'),
+    { dotfiles: 'allow' }
+  );
 });
 
 // ---------------------------------------------------------------------------
