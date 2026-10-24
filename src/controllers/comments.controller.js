@@ -5,7 +5,6 @@
 const commentModel = require('../models/comment.model');
 const postModel = require('../models/post.model');
 const commentService = require('../services/comment.service');
-const activityModel = require('../models/activity.model'); // ← Moved to top for cleanliness
 const { HttpError } = require('../middleware/errorHandler');
 
 // ---------------------------------------------------------------------------
@@ -56,6 +55,9 @@ function createComment(req, res, next) {
 // ---------------------------------------------------------------------------
 // PUT /api/comments/:commentId — F06 Edit (with optimistic locking)
 // ---------------------------------------------------------------------------
+// P25 (extended): التحديث + تسجيل النشاط أصبحا داخل معاملة واحدة
+// عبر commentService.updateComment، فلا يمكن أن يُحفظ تعديل بدون سجل نشاط.
+// ---------------------------------------------------------------------------
 function updateComment(req, res, next) {
   try {
     const commentId = parseInt(req.params.commentId, 10);
@@ -71,13 +73,15 @@ function updateComment(req, res, next) {
 
     const { content, updatedAt } = req.body;
 
-    const ok = commentModel.update(commentId, req.user.id, content.trim(), updatedAt);
+    const ok = commentService.updateComment(
+      commentId,
+      req.user.id,
+      content.trim(),
+      updatedAt
+    );
     if (!ok) {
       throw new HttpError(409, 'Comment was modified by someone else. Please reload.');
     }
-
-    // Activity Log
-    activityModel.log(req.user.id, 'comment_edit', 'comment', commentId);
 
     res.json({ ok: true });
   } catch (err) {
