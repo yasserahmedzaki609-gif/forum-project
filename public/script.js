@@ -101,6 +101,7 @@ async function checkSession() {
     loadNotifications();
     loadActivity();
     loadConnectedAccounts(); // ← C3: تحميل الحسابات المرتبطة فوراً
+    loadRoleRequestStatus();  // ← جديد (P23)
 
     if (state.role === 'admin' || state.role === 'moderator') {
       modSection.classList.remove('hidden');
@@ -829,9 +830,8 @@ async function loadUsers() {
     div.style.gap = '10px';
 
     const isSelf = user.id === state.userId;
-    const canChange = !isSelf || user.role === 'admin'; // can't demote self from admin
+    const canChange = !isSelf || user.role === 'admin';
 
-    // Role badge colors
     const roleColors = {
       admin: '#e74c3c',
       moderator: '#f39c12',
@@ -863,7 +863,6 @@ async function loadUsers() {
     container.appendChild(div);
   }
 
-  // Wire up role selects
   container.querySelectorAll('.user-role-select').forEach((select) => {
     select.addEventListener('change', async (e) => {
       const userId = parseInt(e.target.dataset.userId, 10);
@@ -874,7 +873,7 @@ async function loadUsers() {
 
       const confirmed = confirm(`Change user's role from "${previousRole}" to "${newRole}"?`);
       if (!confirmed) {
-        e.target.value = previousRole; // revert
+        e.target.value = previousRole;
         return;
       }
 
@@ -887,388 +886,527 @@ async function loadUsers() {
         setMessage(`User role updated to ${newRole}`);
         await loadUsers();
       } else {
-        document.getElementById('user-management-error').textContent =
-          res.body.error || 'Failed to update role';
-        e.target.value = previousRole; // revert
+        setMessage(res.body.error || 'Failed to update user role');
+        e.target.value = previousRole;
       }
     });
   });
 }
 
-// ============================================================================
-// Advanced Features (F06)
-// ============================================================================
-async function loadNotifications() {
-  const { ok, body } = await api('/api/notifications');
-  if (!ok) return;
-  const unread = body.filter((n) => !n.is_read).length;
-  const badge = document.getElementById('notif-badge');
-  if (unread > 0) {
-    badge.textContent = unread;
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
-  }
-  const list = document.getElementById('notif-list');
-  list.innerHTML =
-    body.length === 0 ? '<p style="color:#7f8c8d; font-size:.9em;">No notifications yet.</p>' : '';
-  const icons = { like: '👍', comment: '💬', reply: '↩️' };
-  body.forEach((n) => {
-    const div = document.createElement('div');
-    div.className = `notif-item ${n.is_read ? '' : 'unread'}`;
-    div.innerHTML = `
-      <span>${icons[n.type] || '🔔'}</span>
-      <strong>${escapeHtml(n.actor_name)}</strong>
-      ${n.type === 'like' ? 'liked your' : 'commented on your'} ${n.target_type}
-      <div style="font-size:.8em; color:#7f8c8d;">${new Date(n.created_at).toLocaleString()}</div>
-    `;
-    div.addEventListener('click', async () => {
-      await api(`/api/notifications/${n.id}/read`, { method: 'PATCH' });
-      loadNotifications();
-    });
-    list.appendChild(div);
-  });
-}
+// ---------------------------------------------------------------------------
+// Modals & User Actions (Edit, Password, Report, Delete Account, Role Request)
+// ---------------------------------------------------------------------------
+let currentEditPostId = null;
+let currentEditCommentId = null;
+let currentEditCommentPostId = null;
+let currentReport = { type: null, id: null };
 
-let editingPost = null;
-let editingComment = null; // ← D1: State variable for comment editing
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('add-category-btn')?.addEventListener('click', (e) => {
+    withLoading(e.currentTarget, addCategory);
+  });
+
+  document.getElementById('change-password-btn')?.addEventListener('click', () => {
+    document.getElementById('password-modal').classList.remove('hidden');
+    document.getElementById('current-password').value = '';
+    document.getElementById('new-password').value = '';
+    document.getElementById('password-error').textContent = '';
+  });
+
+  document.getElementById('cancel-password-btn')?.addEventListener('click', () => {
+    document.getElementById('password-modal').classList.add('hidden');
+  });
+
+  document.getElementById('save-password-btn')?.addEventListener('click', async (e) => {
+    await withLoading(e.currentTarget, changePassword);
+  });
+
+  document.getElementById('edit-cancel-btn')?.addEventListener('click', () => {
+    document.getElementById('edit-modal').classList.add('hidden');
+    currentEditPostId = null;
+  });
+
+  document.getElementById('edit-save-btn')?.addEventListener('click', async (e) => {
+    await withLoading(e.currentTarget, savePostEdit);
+  });
+
+  document.getElementById('report-cancel-btn')?.addEventListener('click', () => {
+    document.getElementById('report-modal').classList.add('hidden');
+    currentReport = { type: null, id: null };
+  });
+
+  document.getElementById('report-submit-btn')?.addEventListener('click', async (e) => {
+    await withLoading(e.currentTarget, submitReport);
+  });
+
+  document.getElementById('comment-edit-cancel-btn')?.addEventListener('click', () => {
+    document.getElementById('comment-edit-modal').classList.add('hidden');
+    currentEditCommentId = null;
+    currentEditCommentPostId = null;
+  });
+
+  document.getElementById('comment-edit-save-btn')?.addEventListener('click', async (e) => {
+    await withLoading(e.currentTarget, saveCommentEdit);
+  });
+
+  // P23: Role request handlers
+  document
+    .getElementById('request-moderator-btn')
+    ?.addEventListener('click', openRoleRequestModal);
+  document
+    .getElementById('role-request-submit-btn')
+    ?.addEventListener('click', (e) => withLoading(e.currentTarget, submitRoleRequest));
+  document
+    .getElementById('role-request-cancel-btn')
+    ?.addEventListener('click', closeRoleRequestModal);
+
+  // C4: Delete account handlers
+  document
+    .getElementById('delete-account-btn')
+    ?.addEventListener('click', openDeleteAccountModal);
+  document
+    .getElementById('delete-account-confirm-btn')
+    ?.addEventListener('click', (e) => withLoading(e.currentTarget, submitDeleteAccount));
+  document
+    .getElementById('delete-account-cancel-btn')
+    ?.addEventListener('click', closeDeleteAccountModal);
+
+  document.getElementById('notif-bell')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const dropdown = document.getElementById('notif-dropdown');
+    dropdown.classList.toggle('hidden');
+    if (!dropdown.classList.contains('hidden')) {
+      markNotificationsRead();
+    }
+  });
+
+  document.addEventListener('click', () => {
+    document.getElementById('notif-dropdown')?.classList.add('hidden');
+  });
+});
+
+async function changePassword() {
+  const currentPassword = document.getElementById('current-password').value;
+  const newPassword = document.getElementById('new-password').value;
+  const errorEl = document.getElementById('password-error');
+
+  if (!currentPassword || !newPassword) {
+    errorEl.textContent = 'All fields are required.';
+    return;
+  }
+
+  const { ok, body } = await api('/api/users/password', {
+    method: 'PATCH',
+    body: { currentPassword, newPassword },
+  });
+
+  if (ok) {
+    document.getElementById('password-modal').classList.add('hidden');
+    setMessage('Password changed successfully. All sessions revoked.');
+    await checkSession();
+  } else {
+    errorEl.textContent = body.error || 'Failed to change password.';
+  }
+}
 
 async function openEditModal(postId) {
   const { ok, body } = await api(`/api/posts/${postId}`);
   if (!ok) {
-    const listRes = await api('/api/posts?page=1&pageSize=100');
-    if (!listRes.ok) return;
-    editingPost = listRes.body.data.find((p) => p.id === parseInt(postId, 10));
-  } else {
-    editingPost = body;
+    setMessage(body.error || 'Failed to load post for editing');
+    return;
   }
-  if (!editingPost) return;
-  document.getElementById('edit-title').value = editingPost.title;
-  document.getElementById('edit-content').value = editingPost.content;
+  currentEditPostId = postId;
+  document.getElementById('edit-title').value = body.title;
+  document.getElementById('edit-content').value = body.content;
   document.getElementById('edit-error').textContent = '';
-  const catContainer = document.getElementById('edit-categories-container');
-  catContainer.innerHTML = '<p style="margin-bottom:5px;">Categories:</p>';
-  const catRes = await api('/api/categories');
-  if (catRes.ok) {
-    catRes.body.forEach((cat) => {
-      const label = document.createElement('label');
-      label.className = 'category-checkbox';
-      const checked = editingPost.categories.includes(cat.name) ? 'checked' : '';
-      label.innerHTML = `<input type="checkbox" value="${cat.id}" ${checked}> ${cat.name}`;
-      catContainer.appendChild(label);
-    });
-  }
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 
-async function saveEdit() {
-  if (!editingPost) return;
+async function savePostEdit() {
   const title = document.getElementById('edit-title').value.trim();
   const content = document.getElementById('edit-content').value.trim();
-  const categoryIds = Array.from(
-    document.querySelectorAll('#edit-categories-container input:checked')
-  ).map((cb) => parseInt(cb.value, 10));
-  const { ok, body } = await api(`/api/posts/${editingPost.id}`, {
-    method: 'PUT',
-    body: { title, content, categoryIds, updatedAt: editingPost.updated_at },
+  const errorEl = document.getElementById('edit-error');
+
+  if (!title || !content) {
+    errorEl.textContent = 'Title and content cannot be empty.';
+    return;
+  }
+
+  const { ok, body } = await api(`/api/posts/${currentEditPostId}`, {
+    method: 'PATCH',
+    body: { title, content },
   });
+
   if (ok) {
     document.getElementById('edit-modal').classList.add('hidden');
-    editingPost = null;
+    setMessage('Post updated successfully.');
     await loadPosts();
   } else {
-    document.getElementById('edit-error').textContent = body.error || 'Failed to update';
+    errorEl.textContent = body.error || 'Failed to update post.';
   }
 }
 
 async function deletePost(postId) {
-  if (!confirm('Delete this post? This cannot be undone.')) return;
+  if (!confirm('Are you sure you want to delete this post?')) return;
   const { ok, body } = await api(`/api/posts/${postId}`, { method: 'DELETE' });
   if (ok) {
-    setMessage('Post deleted');
+    setMessage('Post deleted.');
     await loadPosts();
   } else {
-    alert(body.error || 'Failed to delete');
+    setMessage(body.error || 'Failed to delete post.');
   }
 }
 
-// --- F05: Report Content Modal ---
-let reportTarget = { type: null, id: null };
-
 function openReportModal(type, id) {
-  reportTarget = { type, id };
+  currentReport = { type, id };
   document.getElementById('report-reason').value = '';
   document.getElementById('report-error').textContent = '';
   document.getElementById('report-modal').classList.remove('hidden');
 }
 
-function closeReportModal() {
-  document.getElementById('report-modal').classList.add('hidden');
-  reportTarget = { type: null, id: null };
-}
-
 async function submitReport() {
-  if (!reportTarget.type) return;
   const reason = document.getElementById('report-reason').value.trim();
+  const errorEl = document.getElementById('report-error');
+
   if (reason.length < 3) {
-    document.getElementById('report-error').textContent = 'Reason must be at least 3 characters.';
+    errorEl.textContent = 'Reason must be at least 3 characters.';
     return;
   }
-  const { ok, body } = await api('/api/reports', {
+
+  const { ok, body } = await api('/api/moderation/reports', {
     method: 'POST',
-    body: { targetType: reportTarget.type, targetId: reportTarget.id, reason },
+    body: {
+      targetType: currentReport.type,
+      targetId: currentReport.id,
+      reason,
+    },
   });
+
   if (ok) {
-    closeReportModal();
-    setMessage('Content reported successfully. Moderators will review it.');
+    document.getElementById('report-modal').classList.add('hidden');
+    setMessage('Content reported successfully.');
   } else {
-    document.getElementById('report-error').textContent = body.error || 'Failed to report';
+    errorEl.textContent = body.error || 'Failed to submit report.';
   }
 }
 
-// --- F04: Change Password ---
-async function submitPasswordChange() {
-  const currentPassword = document.getElementById('current-password').value;
-  const newPassword = document.getElementById('new-password').value;
-  const errorEl = document.getElementById('password-error');
-  if (!currentPassword || !newPassword) {
-    errorEl.textContent = 'All fields are required';
-    return;
-  }
-  if (newPassword.length < 8 || newPassword.length > 72) {
-    errorEl.textContent = 'New password must be 8-72 characters';
-    return;
-  }
-  if (currentPassword === newPassword) {
-    errorEl.textContent = 'New password must differ from the current one';
-    return;
-  }
-  const { ok, body } = await api('/api/users/me/password', {
-    method: 'POST',
-    body: { currentPassword, newPassword },
-  });
-  if (ok) {
-    document.getElementById('password-modal').classList.add('hidden');
-    document.getElementById('current-password').value = '';
-    document.getElementById('new-password').value = '';
-    setMessage('Password updated successfully!');
-  } else {
-    errorEl.textContent = body.error || 'Failed to update password';
-  }
-}
-
-// --- F06: Activity Feed ---
-async function loadActivity() {
-  const { ok, body } = await api('/api/activity/me');
-  if (!ok) return;
-  const container = document.getElementById('activity-list');
-  container.innerHTML = body.length === 0 ? '<p style="color:#7f8c8d;">No activity yet.</p>' : '';
-  const labels = {
-    post_create: '📝 Created a post',
-    comment_create: '💬 Commented',
-    post_edit: '✏️ Edited a post',
-    comment_edit: '✏️ Edited a comment',
-  };
-  body.forEach((a) => {
-    const div = document.createElement('div');
-    div.className = 'activity-item';
-    div.innerHTML = `
-      ${labels[a.action] || a.action} (${a.target_type} #${a.target_id})
-      <span style="float:right; font-size:.85em; color:#7f8c8d;">${new Date(a.created_at).toLocaleString()}</span>
-    `;
-    container.appendChild(div);
-  });
-}
-
-// ============================================================================
-// C3: Identity Management
-// ============================================================================
-async function loadConnectedAccounts() {
-  const { ok, body } = await api('/api/users/me/identities');
-  if (!ok) return;
-
-  const section = document.getElementById('connected-accounts-section');
-  const list = document.getElementById('connected-accounts-list');
-  const hint = document.getElementById('connected-accounts-hint');
-  if (!section || !list) return;
-
-  section.classList.remove('hidden');
-  list.innerHTML = '';
-
-  if (body.identities.length === 0) {
-    list.innerHTML = '<p style="color:#7f8c8d; margin: 5px 0;">No SSO providers linked.</p>';
-  } else {
-    for (const identity of body.identities) {
-      const div = document.createElement('div');
-      div.className = 'mod-card';
-      div.style.display = 'flex';
-      div.style.alignItems = 'center';
-      div.style.justifyContent = 'space-between';
-      div.innerHTML = `
-        <div style="flex: 1;">
-          <strong>${escapeHtml(identity.provider)}</strong>
-          <span style="color:#7f8c8d; font-size: 0.9em; margin-left: 8px;">— ${escapeHtml(identity.email || 'no email')}</span>
-        </div>
-        ${body.canUnlink ? `<button type="button" class="btn-reject" data-unlink="${escapeHtml(identity.provider)}" style="width: auto; padding: 5px 12px; font-size: 12px;">Unlink</button>` : ''}
-      `;
-      const btn = div.querySelector('[data-unlink]');
-      if (btn) {
-        btn.addEventListener('click', () => unlinkIdentity(identity.provider));
-      }
-      list.appendChild(div);
-    }
-  }
-
-  if (!body.canUnlink) {
-    hint.textContent =
-      'You have no password set, so you cannot unlink your only provider. Set a password first.';
-    hint.classList.remove('hidden');
-  } else {
-    hint.classList.add('hidden');
-  }
-}
-
-async function unlinkIdentity(provider) {
-  if (!confirm(`Unlink ${provider} from your account? You will need to use another login method.`))
-    return;
-  const { ok, body } = await api(`/api/users/me/identities/${provider}`, { method: 'DELETE' });
-  if (ok) {
-    setMessage(`${provider} unlinked successfully.`);
-    await loadConnectedAccounts();
-    await checkSession(); // تحديث حالة الجلسة لضمان الاتساق
-  } else {
-    setMessage(body.error || 'Failed to unlink');
-  }
-}
-
-// ============================================================================
-// D1: Comment Edit/Delete UI
-// ============================================================================
-
-async function openCommentEditModal(commentId, postId) {
-  // Fetch current comment data
-  const res = await api(`/api/posts/${postId}/comments`);
-  if (!res.ok) {
-    setMessage('Failed to load comments');
-    return;
-  }
-
-  const comment = res.body.find((c) => c.id === parseInt(commentId, 10));
-  if (!comment) {
-    setMessage('Comment not found');
-    return;
-  }
-
-  editingComment = { id: comment.id, postId: parseInt(postId, 10), updatedAt: comment.updated_at };
-  document.getElementById('comment-edit-content').value = comment.content;
+function openCommentEditModal(commentId, postId) {
+  currentEditCommentId = commentId;
+  currentEditCommentPostId = postId;
   document.getElementById('comment-edit-error').textContent = '';
   document.getElementById('comment-edit-modal').classList.remove('hidden');
 }
 
 async function saveCommentEdit() {
-  if (!editingComment) return;
   const content = document.getElementById('comment-edit-content').value.trim();
   const errorEl = document.getElementById('comment-edit-error');
 
   if (!content) {
-    errorEl.textContent = 'Content cannot be empty';
-    return;
-  }
-  if (content.length > 2000) {
-    errorEl.textContent = 'Content must be at most 2000 characters';
+    errorEl.textContent = 'Comment content cannot be empty.';
     return;
   }
 
-  const res = await api(`/api/comments/${editingComment.id}`, {
-    method: 'PUT',
-    body: { content, updatedAt: editingComment.updatedAt },
+  const { ok, body } = await api(`/api/comments/${currentEditCommentId}`, {
+    method: 'PATCH',
+    body: { content },
   });
 
-  if (res.ok) {
+  if (ok) {
     document.getElementById('comment-edit-modal').classList.add('hidden');
-    const postId = editingComment.postId;
-    editingComment = null;
-    await loadComments(postId);
-    await loadPosts();
-    setMessage('Comment updated');
+    setMessage('Comment updated successfully.');
+    await loadComments(currentEditCommentPostId);
   } else {
-    errorEl.textContent = res.body.error || 'Failed to update comment';
+    errorEl.textContent = body.error || 'Failed to update comment.';
   }
 }
 
 async function deleteCommentUI(commentId, postId) {
-  if (!confirm('Delete this comment? This cannot be undone.')) return;
-
-  const res = await api(`/api/comments/${commentId}`, { method: 'DELETE' });
-  if (res.ok) {
+  if (!confirm('Are you sure you want to delete this comment?')) return;
+  const { ok, body } = await api(`/api/comments/${commentId}`, { method: 'DELETE' });
+  if (ok) {
+    setMessage('Comment deleted.');
     await loadComments(postId);
     await loadPosts();
-    setMessage('Comment deleted');
   } else {
-    setMessage(res.body.error || 'Failed to delete comment');
+    setMessage(body.error || 'Failed to delete comment.');
   }
 }
 
-// ============================================================================
-// Wire up listeners
-// ============================================================================
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('notif-bell')?.addEventListener('click', (e) => {
-    if (e.target.closest('#notif-dropdown')) return;
-    const dd = document.getElementById('notif-dropdown');
-    dd.classList.toggle('hidden');
-    if (!dd.classList.contains('hidden')) loadNotifications();
-  });
+async function loadConnectedAccounts() {
+  const container = document.getElementById('connected-accounts-list');
+  const section = document.getElementById('connected-accounts-section');
+  const hint = document.getElementById('connected-accounts-hint');
+  if (!container || !section) return;
 
-  document
-    .getElementById('edit-save-btn')
-    ?.addEventListener('click', (e) => withLoading(e.currentTarget, saveEdit));
-  document.getElementById('edit-cancel-btn')?.addEventListener('click', () => {
-    document.getElementById('edit-modal').classList.add('hidden');
-    editingPost = null;
-  });
+  const { ok, body } = await api('/api/users/me/identities');
+  if (!ok) {
+    section.classList.add('hidden');
+    return;
+  }
 
-  // D1: Comment edit modal handlers
-  document
-    .getElementById('comment-edit-save-btn')
-    ?.addEventListener('click', (e) => withLoading(e.currentTarget, saveCommentEdit));
-  document.getElementById('comment-edit-cancel-btn')?.addEventListener('click', () => {
-    document.getElementById('comment-edit-modal').classList.add('hidden');
-    editingComment = null;
-  });
+  section.classList.remove('hidden');
+  container.innerHTML = '';
 
-  // D2: Admin categories handlers
-  document
-    .getElementById('add-category-btn')
-    ?.addEventListener('click', (e) => withLoading(e.currentTarget, addCategory));
-  document.getElementById('new-category-name')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addCategory();
+  if (body.length === 0) {
+    container.innerHTML = '<p style="color:#7f8c8d; font-size:.9em; margin:0;">No external accounts linked.</p>';
+    hint.textContent = 'You can link your Google or GitHub account for easy sign-in.';
+    hint.classList.remove('hidden');
+    return;
+  }
+
+  hint.classList.add('hidden');
+  for (const ident of body) {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.justifyContent = 'space-between';
+    div.style.padding = '8px 12px';
+    div.style.background = '#fff';
+    div.style.border = '1px solid #ddd';
+    div.style.borderRadius = '4px';
+
+    div.innerHTML = `
+      <div>
+        <strong style="text-transform: capitalize;">${escapeHtml(ident.provider)}</strong>
+        <span style="color: #7f8c8d; font-size: 0.85em; margin-left: 8px;">(${escapeHtml(ident.provider_email || 'Linked')})</span>
+      </div>
+      <button type="button" class="btn-unlink" data-provider="${ident.provider}" style="background: #e74c3c; padding: 4px 10px; font-size: 12px; margin:0;">Unlink</button>
+    `;
+
+    div.querySelector('.btn-unlink').addEventListener('click', async (e) => {
+      const provider = e.currentTarget.dataset.provider;
+      if (!confirm(`Are you sure you want to unlink your ${provider} account?`)) return;
+
+      const res = await api(`/api/users/me/identities/${provider}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMessage(`Successfully unlinked ${provider} account.`);
+        await loadConnectedAccounts();
+      } else {
+        setMessage(res.body.error || 'Failed to unlink account.');
+      }
+    });
+
+    container.appendChild(div);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// P23: Role Request UI
+// ---------------------------------------------------------------------------
+async function loadRoleRequestStatus() {
+  if (!state.isLoggedIn) return;
+
+  const btn = document.getElementById('request-moderator-btn');
+  const statusEl = document.getElementById('role-request-status');
+  if (!btn || !statusEl) return;
+
+  if (state.role === 'admin') {
+    btn.classList.add('hidden');
+    statusEl.classList.add('hidden');
+    return;
+  }
+
+  btn.textContent =
+    state.role === 'moderator' ? 'Request Admin Promotion' : 'Request Moderator Promotion';
+
+  try {
+    const { ok, body } = await api('/api/roles/me');
+    if (!ok) {
+      btn.classList.remove('hidden');
+      return;
     }
+
+    const pending = Array.isArray(body) ? body.find((r) => r.status === 'pending') : null;
+
+    if (pending) {
+      btn.classList.add('hidden');
+      statusEl.textContent = `⏳ Pending ${pending.requested_role} request awaiting admin review.`;
+      statusEl.classList.remove('hidden');
+    } else {
+      btn.classList.remove('hidden');
+      statusEl.classList.add('hidden');
+    }
+  } catch (_) {
+    btn.classList.remove('hidden');
+  }
+}
+
+function openRoleRequestModal() {
+  const role = state.role === 'moderator' ? 'admin' : 'moderator';
+  const modal = document.getElementById('role-request-modal');
+  modal.querySelector('h3').textContent = `Request ${role.charAt(0).toUpperCase() + role.slice(1)} Role`;
+
+  document.getElementById('role-request-reason').value = '';
+  document.getElementById('role-request-error').textContent = '';
+  modal.classList.remove('hidden');
+}
+
+function closeRoleRequestModal() {
+  document.getElementById('role-request-modal').classList.add('hidden');
+}
+
+async function submitRoleRequest() {
+  const reason = document.getElementById('role-request-reason').value.trim();
+  const errorEl = document.getElementById('role-request-error');
+
+  if (reason.length < 10) {
+    errorEl.textContent = 'Reason must be at least 10 characters.';
+    return;
+  }
+
+  const requestedRole = state.role === 'moderator' ? 'admin' : 'moderator';
+
+  const { ok, body } = await api('/api/roles/request', {
+    method: 'POST',
+    body: { requestedRole, reason },
   });
 
-  document.getElementById('change-password-btn')?.addEventListener('click', () => {
-    document.getElementById('password-modal').classList.remove('hidden');
-    document.getElementById('password-error').textContent = '';
-    document.getElementById('current-password').value = '';
-    document.getElementById('new-password').value = '';
-  });
-  document.getElementById('cancel-password-btn')?.addEventListener('click', () => {
-    document.getElementById('password-modal').classList.add('hidden');
-    document.getElementById('current-password').value = '';
-    document.getElementById('new-password').value = '';
-  });
-  document
-    .getElementById('save-password-btn')
-    ?.addEventListener('click', (e) => withLoading(e.currentTarget, submitPasswordChange));
+  if (ok) {
+    closeRoleRequestModal();
+    setMessage(`✅ ${requestedRole} request submitted. An admin will review it.`);
+    await loadRoleRequestStatus();
+  } else {
+    errorEl.textContent = body.error || 'Failed to submit request';
+  }
+}
 
-  document
-    .getElementById('report-submit-btn')
-    ?.addEventListener('click', (e) => withLoading(e.currentTarget, submitReport));
-  document.getElementById('report-cancel-btn')?.addEventListener('click', closeReportModal);
+// ---------------------------------------------------------------------------
+// C4: Delete Account UI
+// ---------------------------------------------------------------------------
+async function openDeleteAccountModal() {
+  document.getElementById('delete-account-error').textContent = '';
 
-  setInterval(() => {
-    if (state.isLoggedIn) loadNotifications();
-  }, 30000);
-});
+  const promptEl = document.getElementById('delete-account-prompt');
+  const passwordInput = document.getElementById('delete-account-password');
+  const usernameInput = document.getElementById('delete-account-username-confirm');
+
+  const { ok, body } = await api('/api/users/me/identities');
+  const hasPassword = ok && body.hasPassword;
+
+  if (hasPassword) {
+    promptEl.textContent = 'Enter your current password to confirm:';
+    passwordInput.classList.remove('hidden');
+    usernameInput.classList.add('hidden');
+    passwordInput.value = '';
+  } else {
+    promptEl.textContent = `You have no password set. Type your username "${state.username}" to confirm:`;
+    passwordInput.classList.add('hidden');
+    usernameInput.classList.remove('hidden');
+    usernameInput.value = '';
+  }
+
+  document.getElementById('delete-account-modal').classList.remove('hidden');
+}
+
+function closeDeleteAccountModal() {
+  document.getElementById('delete-account-modal').classList.add('hidden');
+}
+
+async function submitDeleteAccount() {
+  const errorEl = document.getElementById('delete-account-error');
+  const passwordField = document.getElementById('delete-account-password');
+  const usernameField = document.getElementById('delete-account-username-confirm');
+
+  const payload = {};
+
+  if (!passwordField.classList.contains('hidden')) {
+    const password = passwordField.value;
+    if (!password) {
+      errorEl.textContent = 'Password is required.';
+      return;
+    }
+    payload.password = password;
+  } else {
+    const confirmation = usernameField.value.trim();
+    if (!confirmation) {
+      errorEl.textContent = 'Username confirmation is required.';
+      return;
+    }
+    payload.confirmation = confirmation;
+  }
+
+  if (!confirm('Are you absolutely sure? This action cannot be undone.')) return;
+
+  const res = await api('/api/users/me', { method: 'DELETE', body: payload });
+
+  if (res.ok) {
+    closeDeleteAccountModal();
+    setMessage('✅ Account deleted. Redirecting...');
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1500);
+  } else {
+    errorEl.textContent = res.body.error || 'Failed to delete account';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications & Activity (F06)
+// ---------------------------------------------------------------------------
+async function loadNotifications() {
+  const { ok, body } = await api('/api/notifications');
+  if (!ok) return;
+
+  const badge = document.getElementById('notif-badge');
+  const list = document.getElementById('notif-list');
+
+  const unreadCount = body.filter((n) => !n.is_read).length;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+
+  if (body.length === 0) {
+    list.innerHTML = '<p style="color:#7f8c8d; font-size:.9em; margin:0;">No notifications.</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+  for (const n of body) {
+    const div = document.createElement('div');
+    div.className = `notif-item ${n.is_read ? '' : 'unread'}`;
+    div.style.padding = '8px 10px';
+    div.style.borderBottom = '1px solid #eee';
+    div.style.fontSize = '0.85em';
+    div.style.background = n.is_read ? '#fff' : '#f0f8ff';
+
+    div.innerHTML = `
+      <div>${escapeHtml(n.message || 'New notification')}</div>
+      <div style="color: #999; font-size: 0.8em; margin-top: 2px;">${escapeHtml(new Date(n.created_at).toLocaleString())}</div>
+    `;
+    list.appendChild(div);
+  }
+}
+
+async function markNotificationsRead() {
+  await api('/api/notifications/read', { method: 'POST' });
+  const badge = document.getElementById('notif-badge');
+  badge.classList.add('hidden');
+  badge.textContent = '0';
+}
+
+async function loadActivity() {
+  const { ok, body } = await api('/api/users/me/activity');
+  const container = document.getElementById('activity-list');
+  if (!container || !ok) return;
+
+  container.innerHTML = '';
+  if (body.length === 0) {
+    container.innerHTML = '<p style="color:#7f8c8d; font-size:.9em;">No recent activity.</p>';
+    return;
+  }
+
+  for (const act of body) {
+    const div = document.createElement('div');
+    div.style.padding = '6px 0';
+    div.style.borderBottom = '1px solid #eee';
+    div.style.fontSize = '0.9em';
+    div.innerHTML = `
+      <strong>${escapeHtml(act.action_type)}</strong> on ${escapeHtml(act.target_type)} 
+      <span style="color: #7f8c8d; font-size: 0.85em; float: right;">${escapeHtml(new Date(act.created_at).toLocaleString())}</span>
+    `;
+    container.appendChild(div);
+  }
+}

@@ -89,6 +89,32 @@
           </button>
         </div>
 
+        <!-- P23: Role Request Button (regular users only) -->
+        <button
+          id="request-moderator-btn"
+          type="button"
+          class="hidden"
+          style="background: #9b59b6; margin: 0 0 10px 0; width: 100%"
+        >
+          Request Role Promotion
+        </button>
+
+        <!-- P23: Pending request indicator -->
+        <p
+          id="role-request-status"
+          class="hidden"
+          style="font-size: 0.85em; color: #f39c12; margin: 5px 0; text-align: center"
+        ></p>
+
+        <!-- C4: Delete Account Button -->
+        <button
+          id="delete-account-btn"
+          type="button"
+          style="background: #7f0000; margin: 0 0 20px 0; width: 100%; font-size: 14px"
+        >
+          ⚠️ Delete My Account
+        </button>
+
         <!-- C3: Connected Accounts -->
         <div
           id="connected-accounts-section"
@@ -292,6 +318,64 @@
       <div id="activity-section" class="hidden">
         <h3>My Activity</h3>
         <div id="activity-list">Loading...</div>
+      </div>
+
+      <!-- P23: Role Request Modal -->
+      <div id="role-request-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Request Role Promotion</h3>
+          <p style="color: #7f8c8d; font-size: 0.9em; margin-bottom: 10px">
+            Explain why you want this role. An admin will review your request.
+          </p>
+          <textarea
+            id="role-request-reason"
+            placeholder="Reason (10-1000 characters)"
+            rows="4"
+            maxlength="1000"
+          ></textarea>
+          <div style="display: flex; gap: 10px; margin-top: 10px">
+            <button id="role-request-submit-btn" type="button" style="background: #27ae60">
+              Submit Request
+            </button>
+            <button id="role-request-cancel-btn" type="button" style="background: #95a5a6">
+              Cancel
+            </button>
+          </div>
+          <p id="role-request-error" class="message"></p>
+        </div>
+      </div>
+
+      <!-- C4: Delete Account Modal -->
+      <div id="delete-account-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3 style="color: #e74c3c">Delete Account</h3>
+          <p style="color: #e74c3c; font-size: 0.9em; margin-bottom: 10px; font-weight: bold">
+            ⚠️ This is permanent and cannot be undone.<br />
+            All your posts, comments, and data will be deleted.
+          </p>
+          <p id="delete-account-prompt" style="color: #7f8c8d; font-size: 0.9em; margin-bottom: 10px"></p>
+          <input
+            type="password"
+            id="delete-account-password"
+            placeholder="Enter your password to confirm"
+            autocomplete="current-password"
+          />
+          <input
+            type="text"
+            id="delete-account-username-confirm"
+            placeholder="Type your username exactly"
+            class="hidden"
+          />
+          <div style="display: flex; gap: 10px; margin-top: 10px">
+            <button id="delete-account-confirm-btn" type="button" style="background: #e74c3c">
+              Delete My Account
+            </button>
+            <button id="delete-account-cancel-btn" type="button" style="background: #95a5a6">
+              Cancel
+            </button>
+          </div>
+          <p id="delete-account-error" class="message"></p>
+        </div>
       </div>
 
       <p id="message" class="message"></p>
