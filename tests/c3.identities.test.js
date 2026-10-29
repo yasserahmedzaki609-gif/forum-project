@@ -30,17 +30,6 @@ describe('C3 — Identities Endpoints', () => {
     return info.lastInsertRowid;
   }
 
-  function createSsoOnlyUser(username, email) {
-    const db = require('../src/database/db');
-    // SSO-only: password starts with '!'
-    const info = db
-      .prepare(
-        "INSERT INTO users (username, email, password, role) VALUES (?, ?, '!unusable', 'user')"
-      )
-      .run(username, email);
-    return info.lastInsertRowid;
-  }
-
   async function loginAs(agent, username, password) {
     const { token } = await getCsrfFor(agent);
     await agent.post('/login').set('x-csrf-token', token).send({ username, password });
@@ -79,51 +68,27 @@ describe('C3 — Identities Endpoints', () => {
   });
 
   test('C3-4: SSO-only user with one provider cannot unlink (would be locked out)', async () => {
-    const userId = createSsoOnlyUser('ssosolo', 'solo@e.com');
+    const userId = createUser('ssosolo', 'solo@e.com', 'longpassword');
     addIdentity(userId, 'google', 'g-solo', 'solo@e.com');
 
-    const _agent = request.agent(app);
-    // Need to login via SSO session — but we can't easily simulate SSO here.
-    // Instead, create a session manually.
+    // 1. Log in normally to get a valid signed session cookie
+    const agent = request.agent(app);
+    const token = await loginAs(agent, 'ssosolo', 'longpassword');
+
+    // 2. Force the user to be "SSO-only" by removing their password in the DB
     const db = require('../src/database/db');
-    const sessionModel = require('../src/models/session.model');
-    const config = require('../src/config');
-    const s = sessionModel.create(userId, config.session.maxAgeMs, null);
+    db.prepare("UPDATE users SET password = '!unusable' WHERE id = ?").run(userId);
 
-    // Trick: agent will use the session cookie if we set it directly
-    // Simplest: use the DB user directly via a fresh session
-    const agent2 = request.agent(app);
-    const { token } = await getCsrfFor(agent2);
-    // Manually set the session by hitting /me after manually injecting the cookie
-    // Alternative: just call the endpoint with a header — but we need cookie-based session.
-    // Easiest: use the session id in a direct request
-    const _res = await request(app)
-      .delete('/api/users/me/identities/google')
-      .set('Cookie', `forum_session=${s.id}`)
-      .set('x-csrf-token', token);
-    // Note: cookie-session signs the value, but for the test we just check
-    // the controller logic via a real authed agent. Simulating cookie signing
-    // is complex; instead, verify at the DB+controller level.
+    // 3. Try to unlink their ONLY identity (the agent still has a valid session)
+    const res = await agent.delete('/api/users/me/identities/google').set('x-csrf-token', token);
 
-    // Simpler: hit the endpoint as the SSO user via a manually-set session.
-    // Since cookie-session validates signature, this path fails.
-    // Better: use the createSessionFor trick via request directly is complex.
-    //
-    // Pragmatic approach: call the controller directly by mocking req.user
-    // — but we want integration test. Let's use a helper: log the user in
-    // via a fake password? They have no password.
-    //
-    // Alternative: skip this specific test complexity by asserting the
-    // safety logic directly via a service-level test.
-    //
-    // Conclusion: we cannot easily simulate an SSO-only user's authenticated
-    // session in the current test harness without a real OAuth callback.
-    // We'll cover this behavior at the model+controller level below.
+    // 4. The server MUST reject this (409 Conflict) to prevent lockout
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/only authentication method/i);
 
-    // Instead, verify the shape:
-    const ident = db.prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?').get(userId);
-    expect(ident.c).toBe(1);
-    expect(true).toBe(true);
+    // 5. Verify the identity still exists in the DB
+    const identCount = db.prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?').get(userId).c;
+    expect(identCount).toBe(1);
   });
 
   test('C3-5: DELETE with invalid provider returns 400', async () => {
@@ -201,29 +166,27 @@ describe('C3 — Identities Endpoints', () => {
   });
 
   test('C3-9: user with two SSO providers can unlink one (safety bypass)', async () => {
-    const userId = createSsoOnlyUser('dualprovider', 'dp@e.com');
+    const userId = createUser('dualprovider', 'dp@e.com', 'longpassword');
     addIdentity(userId, 'google', 'g-dp', 'dp@e.com');
     addIdentity(userId, 'github', 'gh-dp', 'dp@e.com');
 
-    // Manually create session for SSO user (mimics post-OAuth state)
-    const sessionModel = require('../src/models/session.model');
-    const config = require('../src/config');
+    // 1. Log in normally to get a valid session
+    const agent = request.agent(app);
+    const token = await loginAs(agent, 'dualprovider', 'longpassword');
+
+    // 2. Force the user to be "SSO-only"
     const db = require('../src/database/db');
-    const _s = sessionModel.create(userId, config.session.maxAgeMs, null);
+    db.prepare("UPDATE users SET password = '!unusable' WHERE id = ?").run(userId);
 
-    // Use direct request with cookie — but cookie-session requires signed value.
-    // Since we can't easily sign, let's verify the safety logic via DB:
-    const identCount = db
-      .prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?')
-      .get(userId).c;
-    expect(identCount).toBe(2);
+    // 3. Try to unlink ONE identity
+    const res = await agent.delete('/api/users/me/identities/google').set('x-csrf-token', token);
 
-    // The controller would allow unlinking because length > 1.
-    // We verify by calling the safety logic manually:
-    const hasPassword = false; // SSO-only
-    const wouldBeLockedOut = !hasPassword && identCount === 1;
-    expect(wouldBeLockedOut).toBe(false);
-    // (This test documents the policy — the actual endpoint test would
-    // require a signed session cookie, which we can't easily forge.)
+    // 4. The server should ALLOW it because they still have the github identity
+    expect(res.status).toBe(200);
+    expect(res.body.unlinked).toBe('google');
+
+    // 5. Verify only 1 identity remains
+    const identCount = db.prepare('SELECT COUNT(*) AS c FROM identities WHERE user_id = ?').get(userId).c;
+    expect(identCount).toBe(1);
   });
 });
