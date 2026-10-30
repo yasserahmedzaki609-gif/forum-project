@@ -1,4 +1,3 @@
-```markdown
 # Forum Project
 
 [![CI](https://github.com/yasserahmedzaki609-gif/forum-project/actions/workflows/ci.yml/badge.svg)](https://github.com/yasserahmedzaki609-gif/forum-project/actions/workflows/ci.yml)
@@ -21,7 +20,32 @@ A production-grade community forum demonstrating **secure backend architecture**
 
 ## 📸 Screenshots
 
-> *(Place 2–3 screenshots here — feed, moderation dashboard, and SSO buttons)*
+<details>
+<summary><b>📂 اضغط هنا لعرض لقطات المشروع (Click to view screenshots)</b></summary>
+<br>
+
+### 1. فحص صحة النظام (Docker Health)
+![Docker Health](docs/images/1.jpeg)
+
+### 2. شاشة تسجيل الدخول (Login Screen)
+![Login Screen](docs/images/2.png)
+
+### 3. لوحة الإشراف (Moderation Dashboard)
+![Moderation Dashboard](docs/images/3.png)
+
+### 4. واجهة المستخدم (User View)
+![User View](docs/images/4.png)
+
+### 5. إنشاء منشور مع صورة (Post with Image)
+![Post with Image](docs/images/5.png)
+
+### 6. أزرار التحكم للمالك (Owner Buttons)
+![Owner Buttons](docs/images/6.png)
+
+### 7. نظام التعليقات (Comments)
+![Comments](docs/images/7.png)
+
+</details>
 
 ---
 
@@ -112,3 +136,8 @@ Detailed docs live in [`docs/`](./docs):
 
 ISC — see [LICENSE](./LICENSE).
 ```
+
+
+
+**هذا كل شيء!** الملف الآن جاهز، احترافي، والصور مرتبطة بأسمائها الرقمية. 
+جرب هذه الخطوات البسيطة، وأخبرني بكلمة **"تم"**، وسأكون هنا لأي خطوة تالية تريدها! 🎖️🚀
